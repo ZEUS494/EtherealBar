@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace MyButtonsWidget
+namespace EtherealBar
 {
     public class TileWidthConverter : IMultiValueConverter
     {

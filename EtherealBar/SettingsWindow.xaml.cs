@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,7 +6,7 @@ using System.Windows.Media;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 
-namespace MyButtonsWidget
+namespace EtherealBar
 {
     public partial class SettingsWindow : Window
     {
@@ -22,7 +22,7 @@ namespace MyButtonsWidget
         {
             if (Main == null) return;
 
-            // Пробуем подсветить текущий цвет в пикере.
+            // РџСЂРѕР±СѓРµРј РїРѕРґСЃРІРµС‚РёС‚СЊ С‚РµРєСѓС‰РёР№ С†РІРµС‚ РІ РїРёРєРµСЂРµ.
             if (Main.GlobalBorderBrush is SolidColorBrush current)
             {
                 var match = ColorPicker.Items
@@ -39,7 +39,7 @@ namespace MyButtonsWidget
             if (Main == null) return;
             if (ColorPicker.SelectedItem is not SolidColorBrush brush) return;
 
-            // Создаём новый brush, чтобы не зависеть от instance из ресурсов ListBox.
+            // РЎРѕР·РґР°С‘Рј РЅРѕРІС‹Р№ brush, С‡С‚РѕР±С‹ РЅРµ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ instance РёР· СЂРµСЃСѓСЂСЃРѕРІ ListBox.
             Main.GlobalBorderBrush = new SolidColorBrush(brush.Color);
         }
 
@@ -96,4 +96,5 @@ namespace MyButtonsWidget
         }
     }
 }
+
 

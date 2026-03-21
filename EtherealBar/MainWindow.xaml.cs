@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -14,10 +14,10 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Newtonsoft.Json;
-using Microsoft.Win32; // Для работы с реестром (автозагрузка)
+using Microsoft.Win32; // Р”Р»СЏ СЂР°Р±РѕС‚С‹ СЃ СЂРµРµСЃС‚СЂРѕРј (Р°РІС‚РѕР·Р°РіСЂСѓР·РєР°)
 using Forms = System.Windows.Forms;
 
-// Алиасы для устранения конфликтов
+// РђР»РёР°СЃС‹ РґР»СЏ СѓСЃС‚СЂР°РЅРµРЅРёСЏ РєРѕРЅС„Р»РёРєС‚РѕРІ
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using Brush = System.Windows.Media.Brush;
@@ -25,7 +25,7 @@ using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
 using Application = System.Windows.Application;
 
-namespace MyButtonsWidget
+namespace EtherealBar
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
@@ -36,12 +36,12 @@ namespace MyButtonsWidget
 
         public ObservableCollection<ButtonConfig> Buttons { get; set; } = new ObservableCollection<ButtonConfig>();
 
-        // Используем абсолютный путь, чтобы автозагрузка не теряла файл
+        // РСЃРїРѕР»СЊР·СѓРµРј Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ РїСѓС‚СЊ, С‡С‚РѕР±С‹ Р°РІС‚РѕР·Р°РіСЂСѓР·РєР° РЅРµ С‚РµСЂСЏР»Р° С„Р°Р№Р»
         private string settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
         private bool _isEditMode = false;
         private bool _isPanelVisible = false;
-        private bool _isInternalShutdown = false; // Флаг для полного выхода
+        private bool _isInternalShutdown = false; // Р¤Р»Р°Рі РґР»СЏ РїРѕР»РЅРѕРіРѕ РІС‹С…РѕРґР°
         private Brush _globalBorderBrush = Brushes.Cyan;
         private Color _panelBackgroundColor = Color.FromRgb(5, 5, 5);
         private Brush _panelBackgroundBrush = Brushes.Transparent;
@@ -150,37 +150,37 @@ namespace MyButtonsWidget
 
             InitNotifyIcon();
             LoadSettings();
-            SetAutostart(true); // Включаем автозагрузку при запуске
+            SetAutostart(true); // Р’РєР»СЋС‡Р°РµРј Р°РІС‚РѕР·Р°РіСЂСѓР·РєСѓ РїСЂРё Р·Р°РїСѓСЃРєРµ
 
-            // Скрываем окно при запуске, чтобы оно было только в трее
+            // РЎРєСЂС‹РІР°РµРј РѕРєРЅРѕ РїСЂРё Р·Р°РїСѓСЃРєРµ, С‡С‚РѕР±С‹ РѕРЅРѕ Р±С‹Р»Рѕ С‚РѕР»СЊРєРѕ РІ С‚СЂРµРµ
             this.Visibility = Visibility.Hidden;
         }
 
-        // Метод для управления автозагрузкой
+        // РњРµС‚РѕРґ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ Р°РІС‚РѕР·Р°РіСЂСѓР·РєРѕР№
         private void SetAutostart(bool enable)
         {
             try
             {
                 string path = Process.GetCurrentProcess().MainModule?.FileName ?? "";
                 RegistryKey? rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                if (enable) rk?.SetValue("MyButtonsWidget", path);
-                else rk?.DeleteValue("MyButtonsWidget", false);
+                if (enable) rk?.SetValue("EtherealBar", path);
+                else rk?.DeleteValue("EtherealBar", false);
             }
-            catch { /* Ошибки прав доступа */ }
+            catch { /* РћС€РёР±РєРё РїСЂР°РІ РґРѕСЃС‚СѓРїР° */ }
         }
 
-        // Перехватываем закрытие окна
+        // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј Р·Р°РєСЂС‹С‚РёРµ РѕРєРЅР°
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            // 👉 если приложение закрывается из-за выключения ПК
+            // рџ‘‰ РµСЃР»Рё РїСЂРёР»РѕР¶РµРЅРёРµ Р·Р°РєСЂС‹РІР°РµС‚СЃСЏ РёР·-Р·Р° РІС‹РєР»СЋС‡РµРЅРёСЏ РџРљ
             if (_isInternalShutdown)
             {
-                ForceExit(); // 🔥 только это
+                ForceExit(); // рџ”Ґ С‚РѕР»СЊРєРѕ СЌС‚Рѕ
 
                 return;
             }
 
-            // 👉 обычное закрытие — просто скрываем
+            // рџ‘‰ РѕР±С‹С‡РЅРѕРµ Р·Р°РєСЂС‹С‚РёРµ вЂ” РїСЂРѕСЃС‚Рѕ СЃРєСЂС‹РІР°РµРј
             e.Cancel = true;
             TogglePanel();
         }
@@ -216,7 +216,7 @@ namespace MyButtonsWidget
         {
             _isInternalShutdown = true;
 
-            // e.Cancel = false; // Устанавливать не нужно, оно false по умолчанию
+            // e.Cancel = false; // РЈСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ, РѕРЅРѕ false РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
             ForceExit();
 
@@ -231,7 +231,7 @@ namespace MyButtonsWidget
             try
             {
                 using RegistryKey? rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false);
-                return rk?.GetValue("MyButtonsWidget") != null;
+                return rk?.GetValue("EtherealBar") != null;
             }
             catch { return false; }
         }
@@ -239,21 +239,21 @@ namespace MyButtonsWidget
         {
             _notifyIcon = new Forms.NotifyIcon();
             _notifyIcon.Icon = System.Drawing.SystemIcons.Application;
-            _notifyIcon.Text = "MyButtonsWidget";
+            _notifyIcon.Text = "EtherealBar";
             _notifyIcon.Visible = true;
 
             var contextMenu = new Forms.ContextMenuStrip();
 
-            // Пункт Автозагрузка
-            var autostartItem = new Forms.ToolStripMenuItem("Запускать вместе с Windows");
+            // РџСѓРЅРєС‚ РђРІС‚РѕР·Р°РіСЂСѓР·РєР°
+            var autostartItem = new Forms.ToolStripMenuItem("Р—Р°РїСѓСЃРєР°С‚СЊ РІРјРµСЃС‚Рµ СЃ Windows");
             autostartItem.CheckOnClick = true;
             autostartItem.Checked = IsAutostartEnabled();
             autostartItem.Click += (s, e) => SetAutostart(autostartItem.Checked);
 
             contextMenu.Items.Add(autostartItem);
             contextMenu.Items.Add(new Forms.ToolStripSeparator());
-            contextMenu.Items.Add("Показать/Скрыть", null, (s, e) => TogglePanel());
-            contextMenu.Items.Add("Выход", null, (s, e) => {
+            contextMenu.Items.Add("РџРѕРєР°Р·Р°С‚СЊ/РЎРєСЂС‹С‚СЊ", null, (s, e) => TogglePanel());
+            contextMenu.Items.Add("Р’С‹С…РѕРґ", null, (s, e) => {
                 _isInternalShutdown = true;
                 Application.Current.Shutdown();
             });
@@ -263,7 +263,7 @@ namespace MyButtonsWidget
 
         private void TogglePanel()
         {
-            if (_isInternalShutdown) return; // 🔥 ВАЖНО
+            if (_isInternalShutdown) return; // рџ”Ґ Р’РђР–РќРћ
             _isPanelVisible = !_isPanelVisible;
             double targetY = _isPanelVisible ? 0 : HiddenOffset;
             DoubleAnimation anim = new DoubleAnimation(targetY, TimeSpan.FromSeconds(0.4)) { EasingFunction = new QuarticEase { EasingMode = EasingMode.EaseOut } };
@@ -305,7 +305,7 @@ namespace MyButtonsWidget
                         ManageAllMedia(false);
                         RunDeepCleanup();
                         this.Hide();
-                        SaveSettings(); // Сохраняем состояние при каждом скрытии
+                        SaveSettings(); // РЎРѕС…СЂР°РЅСЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРё РєР°Р¶РґРѕРј СЃРєСЂС‹С‚РёРё
                     }
                 };
                 PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
@@ -331,7 +331,7 @@ namespace MyButtonsWidget
 
             try
             {
-                // Заменяем Invoke на асинхронный BeginInvoke, чтобы избежать любых блокировок при выключении
+                // Р—Р°РјРµРЅСЏРµРј Invoke РЅР° Р°СЃРёРЅС…СЂРѕРЅРЅС‹Р№ BeginInvoke, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ Р»СЋР±С‹С… Р±Р»РѕРєРёСЂРѕРІРѕРє РїСЂРё РІС‹РєР»СЋС‡РµРЅРёРё
                 if (!Dispatcher.CheckAccess())
                 {
                     Dispatcher.BeginInvoke(new Action(ForceExit));
@@ -345,12 +345,12 @@ namespace MyButtonsWidget
                     _notifyIcon = null;
                 }
 
-                // Освобождаем горячую клавишу
+                // РћСЃРІРѕР±РѕР¶РґР°РµРј РіРѕСЂСЏС‡СѓСЋ РєР»Р°РІРёС€Сѓ
                 IntPtr h = new WindowInteropHelper(this).Handle;
                 UnregisterHotKey(h, HOTKEY_ID);
 
-                // Если подписывались на Application.Current.SessionEnding, отписываться не обязательно, 
-                // так как приложение всё равно уничтожается, но для чистоты можно добавить:
+                // Р•СЃР»Рё РїРѕРґРїРёСЃС‹РІР°Р»РёСЃСЊ РЅР° Application.Current.SessionEnding, РѕС‚РїРёСЃС‹РІР°С‚СЊСЃСЏ РЅРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ, 
+                // С‚Р°Рє РєР°Рє РїСЂРёР»РѕР¶РµРЅРёРµ РІСЃС‘ СЂР°РІРЅРѕ СѓРЅРёС‡С‚РѕР¶Р°РµС‚СЃСЏ, РЅРѕ РґР»СЏ С‡РёСЃС‚РѕС‚С‹ РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ:
                 Application.Current.SessionEnding -= App_SessionEnding;
             }
             catch { }
@@ -446,7 +446,7 @@ namespace MyButtonsWidget
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
                     Buttons = Buttons.ToList()
                 };
-                // Используем проверку на null и существование директории
+                // РСЃРїРѕР»СЊР·СѓРµРј РїСЂРѕРІРµСЂРєСѓ РЅР° null Рё СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ РґРёСЂРµРєС‚РѕСЂРёРё
                 string? dir = Path.GetDirectoryName(settingsFile);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
@@ -454,7 +454,7 @@ namespace MyButtonsWidget
             }
             catch
             {
-                /* Молча игнорируем ошибки записи при выключении */
+                /* РњРѕР»С‡Р° РёРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё Р·Р°РїРёСЃРё РїСЂРё РІС‹РєР»СЋС‡РµРЅРёРё */
             }
         }
 
@@ -747,3 +747,4 @@ namespace MyButtonsWidget
     }
 
 }
+

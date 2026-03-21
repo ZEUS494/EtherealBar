@@ -7,24 +7,24 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 	<UseWindowsForms>true</UseWindowsForms>
-	<ApplicationIcon>MyWidget.ico</ApplicationIcon>
+	<ApplicationIcon>EtherealBar.ico</ApplicationIcon>
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <InformationalVersion>1.0.0</InformationalVersion>
-    <Product>MyButtonsWidget</Product>
+    <Product>EtherealBar</Product>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Images\fon1.jpg" />
     <None Remove="Images\fon2.jpg" />
     <None Remove="Images\fon3.jpg" />
-    <None Remove="MyWidget.ico" />
+    <None Remove="EtherealBar.ico" />
     <None Remove="Videos\video1.mp4" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="MyWidget.ico" />
+    <Content Include="EtherealBar.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,9 +37,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="MyWidget.ico">
+    <Resource Include="EtherealBar.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
 
 </Project>
+

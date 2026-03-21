@@ -1,8 +1,8 @@
-<Window x:Class="MyButtonsWidget.MainWindow"
+﻿<Window x:Class="EtherealBar.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:MyButtonsWidget"
-        Title="Widget 5.0 Final"
+        xmlns:local="clr-namespace:EtherealBar"
+        Title="EtherealBar"
         Height="500"
         Width="1920"
         WindowStyle="None"
@@ -284,7 +284,7 @@
                                                  TextAlignment="Center"/>
                                         <StackPanel Style="{StaticResource EditControlStyle}" Margin="0,4,0,0">
                                             <DockPanel>
-                                                <TextBlock Text="Формат карточки" Foreground="White" Opacity="0.55" FontSize="11"/>
+                                                <TextBlock Text="Р¤РѕСЂРјР°С‚ РєР°СЂС‚РѕС‡РєРё" Foreground="White" Opacity="0.55" FontSize="11"/>
                                                 <TextBlock DockPanel.Dock="Right"
                                                            Text="{Binding AspectRatio, StringFormat={}{0:0.00}}"
                                                            Foreground="White" Opacity="0.55" FontSize="11"/>
@@ -297,9 +297,9 @@
                                                     IsMoveToPointEnabled="True"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Style="{StaticResource EditControlStyle}">
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupMedia_Click" Tag="{Binding}" Content="🖼"/>
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="CropMedia_Click" Tag="{Binding}" Content="✥"/>
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupApp_Click" Tag="{Binding}" Content="🚀"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupMedia_Click" Tag="{Binding}" Content="рџ–ј"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="CropMedia_Click" Tag="{Binding}" Content="вњҐ"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupApp_Click" Tag="{Binding}" Content="рџљЂ"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Grid>
@@ -307,7 +307,7 @@
                             <Button VerticalAlignment="Top"
                                     HorizontalAlignment="Right"
                                     Margin="0,-5,-5,0"
-                                    Content="✕"
+                                    Content="вњ•"
                                     Style="{StaticResource EditDeleteButtonStyle}"
                                     Click="DeleteButton_Click"
                                     Tag="{Binding}"/>
@@ -406,13 +406,13 @@
                                     VerticalAlignment="Top"
                                     Margin="12,-40,12,0"
                                     Panel.ZIndex="20">
-                            <Button Content="✎"
+                            <Button Content="вњЋ"
                                     Style="{StaticResource IconButtonStyle}"
                                     Click="ToggleEditMode_Click"/>
-                            <Button Content="⚙"
+                            <Button Content="вљ™"
                                     Style="{StaticResource IconButtonStyle}"
                                     Click="OpenSettings_Click"/>
-                            <Button Content="✕"
+                            <Button Content="вњ•"
                                     Style="{StaticResource IconButtonStyle}"
                                     Margin="0"
                                     Click="Close_Click"/>
@@ -423,3 +423,4 @@
         </StackPanel>
     </Grid>
 </Window>
+

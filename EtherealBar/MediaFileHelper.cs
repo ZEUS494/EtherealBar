@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.IO;
 using Drawing = System.Drawing;
 
-namespace MyButtonsWidget
+namespace EtherealBar
 {
     internal static class MediaFileHelper
     {
@@ -49,3 +49,4 @@ namespace MyButtonsWidget
         }
     }
 }
+
