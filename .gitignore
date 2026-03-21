@@ -1,0 +1,16 @@
+# Build artifacts
+bin/
+obj/
+
+# IDE/user files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local tool cache
+.dotnet/
+
+# Logs
+*.log
