@@ -14,10 +14,9 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Newtonsoft.Json;
-using Microsoft.Win32; // Р”Р»СЏ СЂР°Р±РѕС‚С‹ СЃ СЂРµРµСЃС‚СЂРѕРј (Р°РІС‚РѕР·Р°РіСЂСѓР·РєР°)
+using Microsoft.Win32;
 using Forms = System.Windows.Forms;
 
-// РђР»РёР°СЃС‹ РґР»СЏ СѓСЃС‚СЂР°РЅРµРЅРёСЏ РєРѕРЅС„Р»РёРєС‚РѕРІ
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using Brush = System.Windows.Media.Brush;
@@ -60,7 +59,10 @@ namespace EtherealBar
         private double _targetOffset = 0;
         private double _currentOffset = 0;
         private System.Windows.Point _dragStartPoint;
+        private System.Windows.Point _dragGrabOffset;
+        private bool _isTileDragActive;
         private ButtonConfig? _draggedButtonConfig;
+        private Button? _draggedTileButton;
         private SettingsWindow? _settingsWindow;
         private Forms.NotifyIcon? _notifyIcon;
 
@@ -150,13 +152,10 @@ namespace EtherealBar
 
             InitNotifyIcon();
             LoadSettings();
-            SetAutostart(true); // Р’РєР»СЋС‡Р°РµРј Р°РІС‚РѕР·Р°РіСЂСѓР·РєСѓ РїСЂРё Р·Р°РїСѓСЃРєРµ
-
-            // РЎРєСЂС‹РІР°РµРј РѕРєРЅРѕ РїСЂРё Р·Р°РїСѓСЃРєРµ, С‡С‚РѕР±С‹ РѕРЅРѕ Р±С‹Р»Рѕ С‚РѕР»СЊРєРѕ РІ С‚СЂРµРµ
+            SetAutostart(true);
             this.Visibility = Visibility.Hidden;
         }
 
-        // РњРµС‚РѕРґ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ Р°РІС‚РѕР·Р°РіСЂСѓР·РєРѕР№
         private void SetAutostart(bool enable)
         {
             try
@@ -166,21 +165,17 @@ namespace EtherealBar
                 if (enable) rk?.SetValue("EtherealBar", path);
                 else rk?.DeleteValue("EtherealBar", false);
             }
-            catch { /* РћС€РёР±РєРё РїСЂР°РІ РґРѕСЃС‚СѓРїР° */ }
+            catch { }
         }
 
-        // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј Р·Р°РєСЂС‹С‚РёРµ РѕРєРЅР°
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            // рџ‘‰ РµСЃР»Рё РїСЂРёР»РѕР¶РµРЅРёРµ Р·Р°РєСЂС‹РІР°РµС‚СЃСЏ РёР·-Р·Р° РІС‹РєР»СЋС‡РµРЅРёСЏ РџРљ
             if (_isInternalShutdown)
             {
-                ForceExit(); // рџ”Ґ С‚РѕР»СЊРєРѕ СЌС‚Рѕ
-
+                ForceExit();
                 return;
             }
 
-            // рџ‘‰ РѕР±С‹С‡РЅРѕРµ Р·Р°РєСЂС‹С‚РёРµ вЂ” РїСЂРѕСЃС‚Рѕ СЃРєСЂС‹РІР°РµРј
             e.Cancel = true;
             TogglePanel();
         }
@@ -244,16 +239,15 @@ namespace EtherealBar
 
             var contextMenu = new Forms.ContextMenuStrip();
 
-            // РџСѓРЅРєС‚ РђРІС‚РѕР·Р°РіСЂСѓР·РєР°
-            var autostartItem = new Forms.ToolStripMenuItem("Р—Р°РїСѓСЃРєР°С‚СЊ РІРјРµСЃС‚Рµ СЃ Windows");
+            var autostartItem = new Forms.ToolStripMenuItem("Запускать вместе с Windows");
             autostartItem.CheckOnClick = true;
             autostartItem.Checked = IsAutostartEnabled();
             autostartItem.Click += (s, e) => SetAutostart(autostartItem.Checked);
 
             contextMenu.Items.Add(autostartItem);
             contextMenu.Items.Add(new Forms.ToolStripSeparator());
-            contextMenu.Items.Add("РџРѕРєР°Р·Р°С‚СЊ/РЎРєСЂС‹С‚СЊ", null, (s, e) => TogglePanel());
-            contextMenu.Items.Add("Р’С‹С…РѕРґ", null, (s, e) => {
+            contextMenu.Items.Add("Показать/Скрыть", null, (s, e) => TogglePanel());
+            contextMenu.Items.Add("Выход", null, (s, e) => {
                 _isInternalShutdown = true;
                 Application.Current.Shutdown();
             });
@@ -263,7 +257,7 @@ namespace EtherealBar
 
         private void TogglePanel()
         {
-            if (_isInternalShutdown) return; // рџ”Ґ Р’РђР–РќРћ
+            if (_isInternalShutdown) return;
             _isPanelVisible = !_isPanelVisible;
             double targetY = _isPanelVisible ? 0 : HiddenOffset;
             DoubleAnimation anim = new DoubleAnimation(targetY, TimeSpan.FromSeconds(0.4)) { EasingFunction = new QuarticEase { EasingMode = EasingMode.EaseOut } };
@@ -305,7 +299,7 @@ namespace EtherealBar
                         ManageAllMedia(false);
                         RunDeepCleanup();
                         this.Hide();
-                        SaveSettings(); // РЎРѕС…СЂР°РЅСЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРё РєР°Р¶РґРѕРј СЃРєСЂС‹С‚РёРё
+                        SaveSettings();
                     }
                 };
                 PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
@@ -396,7 +390,8 @@ namespace EtherealBar
                     var s = JsonConvert.DeserializeObject<AppSettings>(File.ReadAllText(settingsFile));
                     if (s != null)
                     {
-                        GlobalBorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(s.HoverColorHex));
+                        string accentHex = !string.IsNullOrWhiteSpace(s.AccentColorHex) ? s.AccentColorHex : s.HoverColorHex;
+                        GlobalBorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentHex));
                         if (!string.IsNullOrWhiteSpace(s.PanelBackgroundColorHex))
                         {
                             PanelBackgroundColor = (Color)ColorConverter.ConvertFromString(s.PanelBackgroundColorHex);
@@ -439,6 +434,7 @@ namespace EtherealBar
             {
                 var settings = new AppSettings
                 {
+                    AccentColorHex = GlobalBorderBrush.ToString(),
                     HoverColorHex = GlobalBorderBrush.ToString(),
                     PanelBackgroundColorHex = PanelBackgroundColor.ToString(),
                     WidgetHeight = WidgetHeight,
@@ -446,16 +442,12 @@ namespace EtherealBar
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
                     Buttons = Buttons.ToList()
                 };
-                // РСЃРїРѕР»СЊР·СѓРµРј РїСЂРѕРІРµСЂРєСѓ РЅР° null Рё СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ РґРёСЂРµРєС‚РѕСЂРёРё
                 string? dir = Path.GetDirectoryName(settingsFile);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                 File.WriteAllText(settingsFile, JsonConvert.SerializeObject(settings, Formatting.Indented));
             }
-            catch
-            {
-                /* РњРѕР»С‡Р° РёРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё Р·Р°РїРёСЃРё РїСЂРё РІС‹РєР»СЋС‡РµРЅРёРё */
-            }
+            catch { }
         }
 
         private void OpenSettings_Click(object sender, RoutedEventArgs e)
@@ -565,8 +557,16 @@ namespace EtherealBar
         {
             if (!IsEditMode) return;
             if (sender is Button tileButton && IsInteractiveChildClick(e.OriginalSource as DependencyObject, tileButton)) return;
-            _dragStartPoint = e.GetPosition(null);
-            if (sender is Button b && b.DataContext is ButtonConfig cfg) _draggedButtonConfig = cfg;
+
+            _dragStartPoint = e.GetPosition(this);
+            _isTileDragActive = false;
+
+            if (sender is Button b && b.DataContext is ButtonConfig cfg)
+            {
+                _draggedButtonConfig = cfg;
+                _draggedTileButton = b;
+                _dragGrabOffset = e.GetPosition(b);
+            }
         }
 
         private void Tile_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -574,49 +574,140 @@ namespace EtherealBar
             if (!IsEditMode || e.LeftButton != MouseButtonState.Pressed || _draggedButtonConfig == null) return;
             if (sender is Button tileButton && IsInteractiveChildClick(e.OriginalSource as DependencyObject, tileButton)) return;
 
-            System.Windows.Point currentPos = e.GetPosition(null);
+            System.Windows.Point currentPos = e.GetPosition(this);
             Vector diff = currentPos - _dragStartPoint;
-            if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance && Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-
-            var dragged = _draggedButtonConfig;
-            dragged.IsDragging = true;
-            try { System.Windows.DragDrop.DoDragDrop((DependencyObject)sender, dragged, System.Windows.DragDropEffects.Move); }
-            finally { dragged.IsDragging = false; _draggedButtonConfig = null; }
-        }
-
-        private void Tile_DragOver(object sender, System.Windows.DragEventArgs e)
-        {
-            if (!IsEditMode || !e.Data.GetDataPresent(typeof(ButtonConfig))) { e.Effects = System.Windows.DragDropEffects.None; e.Handled = true; return; }
-            e.Effects = System.Windows.DragDropEffects.Move;
-            if (sender is Button targetButton && targetButton.DataContext is ButtonConfig targetConfig)
+            if (!_isTileDragActive)
             {
-                foreach (var btn in Buttons) btn.IsDropTarget = false;
-                targetConfig.IsDropTarget = true;
+                if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                    Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+                {
+                    return;
+                }
+
+                _isTileDragActive = true;
+                _draggedButtonConfig.IsDragging = true;
+                _draggedTileButton ??= sender as Button;
+                _draggedTileButton?.CaptureMouse();
             }
-            e.Handled = true;
+
+            UpdateDraggedTilePosition(currentPos);
+            UpdateDraggedTileVisualOffset(currentPos);
         }
 
-        private void Tile_Drop(object sender, System.Windows.DragEventArgs e)
+        private void Tile_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!IsEditMode || !e.Data.GetDataPresent(typeof(ButtonConfig))) return;
-            var sourceConfig = e.Data.GetData(typeof(ButtonConfig)) as ButtonConfig;
-            if (sourceConfig == null || sender is not Button targetButton || targetButton.DataContext is not ButtonConfig targetConfig || ReferenceEquals(sourceConfig, targetConfig)) return;
+            FinishTileDrag();
+        }
 
-            int oldIndex = Buttons.IndexOf(sourceConfig);
-            int newIndex = Buttons.IndexOf(targetConfig);
-            if (oldIndex < 0 || newIndex < 0) return;
+        private void Tile_LostMouseCapture(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isTileDragActive)
+            {
+                FinishTileDrag();
+            }
+        }
 
-            var dropPos = e.GetPosition(targetButton);
-            bool insertAfter = targetButton.ActualWidth > 0 && dropPos.X >= targetButton.ActualWidth / 2.0;
-            int desiredIndex = newIndex + (insertAfter ? 1 : 0);
-            int insertIndex = desiredIndex;
-            if (oldIndex < insertIndex) insertIndex--;
+        private void FinishTileDrag()
+        {
+            bool shouldSave = _isTileDragActive;
 
-            if (insertIndex < 0) insertIndex = 0;
-            if (insertIndex >= Buttons.Count) insertIndex = Buttons.Count - 1;
+            if (_draggedButtonConfig != null)
+            {
+                _draggedButtonConfig.DragOffsetX = 0;
+                _draggedButtonConfig.DragOffsetY = 0;
+                _draggedButtonConfig.IsDragging = false;
+            }
 
-            Buttons.Move(oldIndex, insertIndex);
-            foreach (var btn in Buttons) btn.IsDropTarget = false;
+            foreach (var button in Buttons)
+            {
+                button.IsDropTarget = false;
+            }
+
+            _isTileDragActive = false;
+
+            if (shouldSave)
+            {
+                SaveSettings();
+            }
+
+            _draggedTileButton?.ReleaseMouseCapture();
+            _draggedTileButton = null;
+            _draggedButtonConfig = null;
+        }
+
+        private void UpdateDraggedTilePosition(System.Windows.Point currentPos)
+        {
+            if (_draggedButtonConfig == null)
+            {
+                return;
+            }
+
+            int oldIndex = Buttons.IndexOf(_draggedButtonConfig);
+            if (oldIndex < 0)
+            {
+                return;
+            }
+
+            int rawInsertIndex = Buttons.Count;
+            for (int i = 0; i < Buttons.Count; i++)
+            {
+                ButtonConfig candidate = Buttons[i];
+                if (ReferenceEquals(candidate, _draggedButtonConfig))
+                {
+                    continue;
+                }
+
+                var presenter = MediaHost.ItemContainerGenerator.ContainerFromItem(candidate) as ContentPresenter;
+                if (presenter == null)
+                {
+                    continue;
+                }
+
+                Rect bounds = presenter.TransformToAncestor(this)
+                    .TransformBounds(new Rect(0, 0, presenter.ActualWidth, presenter.ActualHeight));
+
+                if (currentPos.X < bounds.Left + (bounds.Width / 2))
+                {
+                    rawInsertIndex = i;
+                    break;
+                }
+            }
+
+            int newIndex = rawInsertIndex;
+            if (newIndex > oldIndex)
+            {
+                newIndex--;
+            }
+
+            newIndex = Math.Clamp(newIndex, 0, Buttons.Count - 1);
+            if (newIndex == oldIndex)
+            {
+                return;
+            }
+
+            Buttons.Move(oldIndex, newIndex);
+            UpdateLayout();
+            UpdateDraggedTileVisualOffset(currentPos);
+        }
+
+        private void UpdateDraggedTileVisualOffset(System.Windows.Point currentPos)
+        {
+            if (_draggedButtonConfig == null)
+            {
+                return;
+            }
+
+            Button? tileButton = _draggedTileButton;
+            if (tileButton == null)
+            {
+                return;
+            }
+
+            Rect bounds = tileButton.TransformToAncestor(this)
+                .TransformBounds(new Rect(0, 0, tileButton.ActualWidth, tileButton.ActualHeight));
+
+            _draggedButtonConfig.DragOffsetX = currentPos.X - (bounds.Left + _dragGrabOffset.X);
+            _draggedButtonConfig.DragOffsetY = currentPos.Y - (bounds.Top + _dragGrabOffset.Y);
         }
 
         private void TileContentBorder_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -677,6 +768,7 @@ namespace EtherealBar
 
     public class AppSettings
     {
+        public string AccentColorHex { get; set; } = "#FF00FFFF";
         public string HoverColorHex { get; set; } = "#FF00FFFF";
         public string PanelBackgroundColorHex { get; set; } = "#FF050505";
         public double WidgetHeight { get; set; } = 400;
@@ -698,6 +790,8 @@ namespace EtherealBar
         private double _mediaOffsetX;
         private double _mediaOffsetY;
         private double _sourceAspectRatio = 1.0;
+        private double _dragOffsetX;
+        private double _dragOffsetY;
 
         public string AppPath { get; set; } = "explorer.exe";
         public string Title { get => _t; set { _t = value; OnPropertyChanged(nameof(Title)); } }
@@ -706,6 +800,8 @@ namespace EtherealBar
         public double MediaOffsetX { get => _mediaOffsetX; set { _mediaOffsetX = Math.Clamp(value, -1, 1); OnPropertyChanged(nameof(MediaOffsetX)); } }
         public double MediaOffsetY { get => _mediaOffsetY; set { _mediaOffsetY = Math.Clamp(value, -1, 1); OnPropertyChanged(nameof(MediaOffsetY)); } }
         public double SourceAspectRatio { get => _sourceAspectRatio; set { _sourceAspectRatio = value > 0 ? value : 1.0; OnPropertyChanged(nameof(SourceAspectRatio)); } }
+        [JsonIgnore] public double DragOffsetX { get => _dragOffsetX; set { _dragOffsetX = value; OnPropertyChanged(nameof(DragOffsetX)); } }
+        [JsonIgnore] public double DragOffsetY { get => _dragOffsetY; set { _dragOffsetY = value; OnPropertyChanged(nameof(DragOffsetY)); } }
 
         public double AspectRatio
         {

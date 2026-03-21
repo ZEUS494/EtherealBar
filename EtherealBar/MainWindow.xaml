@@ -122,6 +122,90 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="SliderTrackButtonBaseStyle" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Background" Value="#B8B8B8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="{TemplateBinding Background}"
+                                Height="2"
+                                VerticalAlignment="Center"
+                                CornerRadius="1"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SliderDecreaseRepeatButtonStyle" TargetType="RepeatButton" BasedOn="{StaticResource SliderTrackButtonBaseStyle}">
+            <Setter Property="Background" Value="#4A67D6"/>
+        </Style>
+
+        <Style x:Key="SliderIncreaseRepeatButtonStyle" TargetType="RepeatButton" BasedOn="{StaticResource SliderTrackButtonBaseStyle}">
+            <Setter Property="Background" Value="#B8B8B8"/>
+        </Style>
+
+        <Style x:Key="SliderThumbStyle" TargetType="Thumb">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Width="14" Height="14">
+                            <Ellipse x:Name="AccentRing"
+                                     Width="14"
+                                     Height="14"
+                                     Fill="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     Opacity="1"/>
+                            <Ellipse x:Name="InnerCircle"
+                                     Width="10"
+                                     Height="10"
+                                     Fill="#FFFFFFFF"
+                                     StrokeThickness="0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="InnerCircle" Property="Fill" Value="#F4F6FF"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="InnerCircle" Property="Opacity" Value="0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Slider">
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="20"
+                              VerticalAlignment="Center">
+                            <Track x:Name="PART_Track"
+                                   VerticalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge"
+                                                  Background="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  Style="{StaticResource SliderDecreaseRepeatButtonStyle}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource SliderThumbStyle}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge"
+                                                  Style="{StaticResource SliderIncreaseRepeatButtonStyle}"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="TileButtonStyle" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width">
@@ -149,7 +233,11 @@
                                     CornerRadius="20"
                                     RenderTransformOrigin="0.5,0.5">
                                 <Border.RenderTransform>
-                                    <ScaleTransform x:Name="HoverScale"/>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="HoverScale"/>
+                                        <TranslateTransform X="{Binding DragOffsetX}"
+                                                            Y="{Binding DragOffsetY}"/>
+                                    </TransformGroup>
                                 </Border.RenderTransform>
                                 <Grid>
                                     <Border x:Name="MediaViewport"
@@ -284,7 +372,7 @@
                                                  TextAlignment="Center"/>
                                         <StackPanel Style="{StaticResource EditControlStyle}" Margin="0,4,0,0">
                                             <DockPanel>
-                                                <TextBlock Text="Р¤РѕСЂРјР°С‚ РєР°СЂС‚РѕС‡РєРё" Foreground="White" Opacity="0.55" FontSize="11"/>
+                                                <TextBlock Text="Формат карточки" Foreground="White" Opacity="0.55" FontSize="11"/>
                                                 <TextBlock DockPanel.Dock="Right"
                                                            Text="{Binding AspectRatio, StringFormat={}{0:0.00}}"
                                                            Foreground="White" Opacity="0.55" FontSize="11"/>
@@ -297,9 +385,9 @@
                                                     IsMoveToPointEnabled="True"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Style="{StaticResource EditControlStyle}">
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupMedia_Click" Tag="{Binding}" Content="рџ–ј"/>
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="CropMedia_Click" Tag="{Binding}" Content="вњҐ"/>
-                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupApp_Click" Tag="{Binding}" Content="рџљЂ"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupMedia_Click" Tag="{Binding}" Content="🖼"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="CropMedia_Click" Tag="{Binding}" Content="✥"/>
+                                            <Button Style="{StaticResource TileEditActionButtonStyle}" Click="SetupApp_Click" Tag="{Binding}" Content="🚀"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Grid>
@@ -307,14 +395,24 @@
                             <Button VerticalAlignment="Top"
                                     HorizontalAlignment="Right"
                                     Margin="0,-5,-5,0"
-                                    Content="вњ•"
-                                    Style="{StaticResource EditDeleteButtonStyle}"
+                                    Content="✕"
                                     Click="DeleteButton_Click"
-                                    Tag="{Binding}"/>
+                                    Tag="{Binding}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource EditDeleteButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDragging}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsDragging}" Value="True">
                                 <Setter TargetName="mainBorder" Property="Opacity" Value="0.5"/>
+                                <Setter TargetName="mainBorder" Property="Panel.ZIndex" Value="50"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
                                 <Setter TargetName="mainBorder" Property="BorderBrush" Value="{Binding GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -383,11 +481,10 @@
                                         <DataTemplate>
                                             <Button Style="{StaticResource TileButtonStyle}"
                                                     Click="Tile_Click"
-                                                    AllowDrop="True"
                                                     PreviewMouseLeftButtonDown="Tile_PreviewMouseLeftButtonDown"
                                                     PreviewMouseMove="Tile_PreviewMouseMove"
-                                                    Drop="Tile_Drop"
-                                                    DragOver="Tile_DragOver"/>
+                                                    PreviewMouseLeftButtonUp="Tile_PreviewMouseLeftButtonUp"
+                                                    LostMouseCapture="Tile_LostMouseCapture"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -406,13 +503,13 @@
                                     VerticalAlignment="Top"
                                     Margin="12,-40,12,0"
                                     Panel.ZIndex="20">
-                            <Button Content="вњЋ"
+                            <Button Content="✎"
                                     Style="{StaticResource IconButtonStyle}"
                                     Click="ToggleEditMode_Click"/>
-                            <Button Content="вљ™"
+                            <Button Content="⚙"
                                     Style="{StaticResource IconButtonStyle}"
                                     Click="OpenSettings_Click"/>
-                            <Button Content="вњ•"
+                            <Button Content="✕"
                                     Style="{StaticResource IconButtonStyle}"
                                     Margin="0"
                                     Click="Close_Click"/>

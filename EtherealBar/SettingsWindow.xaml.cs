@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
@@ -22,7 +23,6 @@ namespace EtherealBar
         {
             if (Main == null) return;
 
-            // РџСЂРѕР±СѓРµРј РїРѕРґСЃРІРµС‚РёС‚СЊ С‚РµРєСѓС‰РёР№ С†РІРµС‚ РІ РїРёРєРµСЂРµ.
             if (Main.GlobalBorderBrush is SolidColorBrush current)
             {
                 var match = ColorPicker.Items
@@ -39,7 +39,6 @@ namespace EtherealBar
             if (Main == null) return;
             if (ColorPicker.SelectedItem is not SolidColorBrush brush) return;
 
-            // РЎРѕР·РґР°С‘Рј РЅРѕРІС‹Р№ brush, С‡С‚РѕР±С‹ РЅРµ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ instance РёР· СЂРµСЃСѓСЂСЃРѕРІ ListBox.
             Main.GlobalBorderBrush = new SolidColorBrush(brush.Color);
         }
 
@@ -87,6 +86,30 @@ namespace EtherealBar
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left)
+                return;
+
+            if (FindAncestor<System.Windows.Controls.Button>(e.OriginalSource as DependencyObject) != null)
+                return;
+
+            DragMove();
+        }
+
+        private static T? FindAncestor<T>(DependencyObject? dependencyObject) where T : DependencyObject
+        {
+            while (dependencyObject != null)
+            {
+                if (dependencyObject is T match)
+                    return match;
+
+                dependencyObject = VisualTreeHelper.GetParent(dependencyObject);
+            }
+
+            return null;
         }
 
         protected override void OnClosed(EventArgs e)
