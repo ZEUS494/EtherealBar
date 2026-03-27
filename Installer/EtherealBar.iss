@@ -1,4 +1,4 @@
-#define MyAppName "EtherealBar"
+﻿#define MyAppName "EtherealBar"
 #define MyAppVersion "1.2.0"
 #define MyAppPublisher "ZEUS494"
 #define MyAppExeName "EtherealBar.exe"
@@ -37,4 +37,6 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Запустить {#MyAppName}"; Flags: nowait postinstall skipifsilent
+
+
 
