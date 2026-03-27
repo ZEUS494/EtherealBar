@@ -269,7 +269,7 @@
                                        Foreground="White"
                                        Opacity="0.8"/>
                         </DockPanel>
-                        <Slider Minimum="200"
+                        <Slider Minimum="{Binding MinWidgetHeight}"
                                 Maximum="{Binding MaxWidgetHeight}"
                                 Value="{Binding WidgetHeight, Mode=TwoWay}"
                                 TickFrequency="10"
@@ -283,29 +283,13 @@
 
                     <StackPanel Margin="0,12,0,0">
                         <DockPanel>
-                            <TextBlock Text="Размер карточек" Foreground="White" Opacity="0.8"/>
-                            <TextBlock DockPanel.Dock="Right"
-                                       Text="{Binding TileScale, StringFormat={}{0:0.00}x}"
-                                       Foreground="White"
-                                       Opacity="0.8"/>
-                        </DockPanel>
-                        <Slider Minimum="0.70"
-                                Maximum="1.30"
-                                Value="{Binding TileScale, Mode=TwoWay}"
-                                TickFrequency="0.05"
-                                IsSnapToTickEnabled="True"
-                                IsMoveToPointEnabled="True"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,12,0,0">
-                        <DockPanel>
                             <TextBlock Text="Прозрачность фона панели" Foreground="White" Opacity="0.8"/>
                             <TextBlock DockPanel.Dock="Right"
                                        Text="{Binding PanelBackgroundOpacity, StringFormat={}{0:0.00}}"
                                        Foreground="White"
                                        Opacity="0.8"/>
                         </DockPanel>
-                        <Slider Minimum="0.05"
+                        <Slider Minimum="0.00"
                                 Maximum="1.00"
                                 Value="{Binding PanelBackgroundOpacity, Mode=TwoWay}"
                                 TickFrequency="0.05"

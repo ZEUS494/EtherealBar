@@ -12,5 +12,8 @@ obj/
 # Local tool cache
 .dotnet/
 
+# Local build outputs
+artifacts/
+
 # Logs
 *.log

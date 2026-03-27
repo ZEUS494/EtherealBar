@@ -33,14 +33,54 @@ namespace EtherealBar
         [DllImport("psapi.dll")] private static extern bool EmptyWorkingSet(IntPtr hProcess);
         private const int HOTKEY_ID = 9000;
 
-        public ObservableCollection<ButtonConfig> Buttons { get; set; } = new ObservableCollection<ButtonConfig>();
+        private ObservableCollection<ButtonConfig> _buttons = new ObservableCollection<ButtonConfig>();
+        public ObservableCollection<ButtonConfig> Buttons
+        {
+            get => _buttons;
+            private set
+            {
+                if (ReferenceEquals(_buttons, value)) return;
+                _buttons = value;
+                OnPropertyChanged(nameof(Buttons));
+            }
+        }
 
-        // РСЃРїРѕР»СЊР·СѓРµРј Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ РїСѓС‚СЊ, С‡С‚РѕР±С‹ Р°РІС‚РѕР·Р°РіСЂСѓР·РєР° РЅРµ С‚РµСЂСЏР»Р° С„Р°Р№Р»
-        private string settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+        public ObservableCollection<WorkspaceConfig> Workspaces { get; } = new ObservableCollection<WorkspaceConfig>();
+        private WorkspaceConfig? _selectedWorkspace;
+        public WorkspaceConfig? SelectedWorkspace
+        {
+            get => _selectedWorkspace;
+            set
+            {
+                if (ReferenceEquals(_selectedWorkspace, value) || value == null) return;
+
+                if (_isTileDragActive)
+                    FinishTileDrag();
+
+                _selectedWorkspace = value;
+                Buttons = value.Buttons;
+                OnPropertyChanged(nameof(SelectedWorkspace));
+
+                if (_isPanelVisible)
+                {
+                    PauseAllMedia();
+                    _targetOffset = 0;
+                    _currentOffset = 0;
+                    MainScrollViewer.ScrollToHorizontalOffset(0);
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try { PlayActiveWorkspaceMedia(); } catch { }
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            }
+        }
+
+        private readonly string settingsFile = GetSettingsFilePath();
 
         private bool _isEditMode = false;
         private bool _isPanelVisible = false;
-        private bool _isInternalShutdown = false; // Р¤Р»Р°Рі РґР»СЏ РїРѕР»РЅРѕРіРѕ РІС‹С…РѕРґР°
+        private bool _isInternalShutdown = false;
         private Brush _globalBorderBrush = Brushes.Cyan;
         private Color _panelBackgroundColor = Color.FromRgb(5, 5, 5);
         private Brush _panelBackgroundBrush = Brushes.Transparent;
@@ -49,9 +89,9 @@ namespace EtherealBar
         private const double BaseTileHeight = 373;
         private const double MinTileHeight = 120;
         private const double TileVerticalPadding = 40;
+        private const double MinWidgetHeightInEditMode = 320;
 
         private double _widgetHeight = 400;
-        private double _tileScale = 1.0;
         private double _panelBackgroundOpacity = 0.82;
         private double _hiddenOffset = 450;
         public double MaxWidgetHeight { get; }
@@ -63,10 +103,29 @@ namespace EtherealBar
         private bool _isTileDragActive;
         private ButtonConfig? _draggedButtonConfig;
         private Button? _draggedTileButton;
+        private readonly Dictionary<WorkspaceConfig, ItemsControl> _workspaceMediaHosts = new Dictionary<WorkspaceConfig, ItemsControl>();
+        private ItemsControl? _activeMediaHost;
         private SettingsWindow? _settingsWindow;
         private Forms.NotifyIcon? _notifyIcon;
 
-        public bool IsEditMode { get => _isEditMode; set { _isEditMode = value; OnPropertyChanged(nameof(IsEditMode)); } }
+        public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
+
+        public bool IsEditMode
+        {
+            get => _isEditMode;
+            set
+            {
+                if (_isEditMode == value) return;
+                _isEditMode = value;
+                OnPropertyChanged(nameof(IsEditMode));
+                OnPropertyChanged(nameof(MinWidgetHeight));
+
+                if (_isEditMode && WidgetHeight < MinWidgetHeightInEditMode)
+                {
+                    WidgetHeight = MinWidgetHeightInEditMode;
+                }
+            }
+        }
         public Brush GlobalBorderBrush { get => _globalBorderBrush; set { _globalBorderBrush = value; OnPropertyChanged(nameof(GlobalBorderBrush)); } }
         public Color PanelBackgroundColor
         {
@@ -86,7 +145,7 @@ namespace EtherealBar
             get => _widgetHeight;
             set
             {
-                double clamped = Clamp(value, 200, MaxWidgetHeight);
+                double clamped = Clamp(value, MinWidgetHeight, MaxWidgetHeight);
                 if (Math.Abs(_widgetHeight - clamped) < 0.1) return;
                 _widgetHeight = clamped;
                 OnPropertyChanged(nameof(WidgetHeight));
@@ -96,26 +155,12 @@ namespace EtherealBar
             }
         }
 
-        public double TileScale
-        {
-            get => _tileScale;
-            set
-            {
-                double clamped = Clamp(value, 0.70, 1.30);
-                if (Math.Abs(_tileScale - clamped) < 0.0001) return;
-                _tileScale = clamped;
-                OnPropertyChanged(nameof(TileScale));
-                OnPropertyChanged(nameof(TileWidth));
-                OnPropertyChanged(nameof(TileHeight));
-            }
-        }
-
         public double PanelBackgroundOpacity
         {
             get => _panelBackgroundOpacity;
             set
             {
-                double clamped = Clamp(value, 0.05, 1.0);
+                double clamped = Clamp(value, 0.0, 1.0);
                 if (Math.Abs(_panelBackgroundOpacity - clamped) < 0.0001) return;
                 _panelBackgroundOpacity = clamped;
                 UpdatePanelBackgroundBrush();
@@ -128,9 +173,8 @@ namespace EtherealBar
         {
             get
             {
-                double scaledHeight = BaseTileHeight * TileScale;
-                double availableHeight = Math.Max(MinTileHeight, WidgetHeight - TileVerticalPadding);
-                return Math.Min(scaledHeight, availableHeight);
+                double availableHeight = WidgetHeight - TileVerticalPadding;
+                return Math.Max(MinTileHeight, availableHeight);
             }
         }
         public double HiddenOffset => _hiddenOffset;
@@ -187,9 +231,37 @@ namespace EtherealBar
             return value;
         }
 
+        private static string GetSettingsFilePath()
+        {
+            string appDataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "EtherealBar");
+
+            string targetPath = Path.Combine(appDataDir, "settings.json");
+            string legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+
+            try
+            {
+                if (!Directory.Exists(appDataDir))
+                    Directory.CreateDirectory(appDataDir);
+
+                if (!File.Exists(targetPath) && File.Exists(legacyPath))
+                    File.Copy(legacyPath, targetPath, overwrite: false);
+            }
+            catch { }
+
+            return targetPath;
+        }
+
         private void UpdatePanelBackgroundBrush()
         {
             byte alpha = (byte)Math.Round(255 * PanelBackgroundOpacity);
+            if (alpha == 0)
+            {
+                PanelBackgroundBrush = Brushes.Transparent;
+                return;
+            }
+
             PanelBackgroundBrush = new SolidColorBrush(Color.FromArgb(alpha, PanelBackgroundColor.R, PanelBackgroundColor.G, PanelBackgroundColor.B));
         }
 
@@ -210,8 +282,6 @@ namespace EtherealBar
         private void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
             _isInternalShutdown = true;
-
-            // e.Cancel = false; // РЈСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ, РѕРЅРѕ false РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
             ForceExit();
 
@@ -308,14 +378,87 @@ namespace EtherealBar
 
         private void ManageAllMedia(bool play)
         {
-            for (int i = 0; i < MediaHost.Items.Count; i++)
+            if (play) PlayActiveWorkspaceMedia();
+            else PauseAllMedia();
+        }
+
+        private void PauseAllMedia()
+        {
+            foreach (var host in _workspaceMediaHosts.Values)
             {
-                var container = MediaHost.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
+                PauseMediaInHost(host);
+            }
+        }
+
+        private void PlayActiveWorkspaceMedia()
+        {
+            if (SelectedWorkspace != null && _workspaceMediaHosts.TryGetValue(SelectedWorkspace, out var host))
+            {
+                _activeMediaHost = host;
+            }
+
+            if (_activeMediaHost != null)
+            {
+                PlayMediaInHost(_activeMediaHost);
+            }
+        }
+
+        private void PauseMediaInHost(ItemsControl host)
+        {
+            for (int i = 0; i < host.Items.Count; i++)
+            {
+                var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
                 var media = FindVisualChild<MediaElement>(container);
                 if (media == null) continue;
-                if (play) { media.Visibility = Visibility.Visible; media.Play(); }
-                else { media.Pause(); }
+                try { media.Pause(); } catch { }
             }
+        }
+
+        private void PlayMediaInHost(ItemsControl host)
+        {
+            for (int i = 0; i < host.Items.Count; i++)
+            {
+                var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
+                var media = FindVisualChild<MediaElement>(container);
+                if (media == null) continue;
+                try
+                {
+                    if (media.Visibility == Visibility.Visible)
+                        media.Play();
+                }
+                catch { }
+            }
+        }
+
+        private void WorkspaceMediaHost_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ItemsControl host) return;
+            if (host.DataContext is not WorkspaceConfig ws) return;
+
+            _workspaceMediaHosts[ws] = host;
+            if (SelectedWorkspace != null && ReferenceEquals(ws, SelectedWorkspace))
+            {
+                _activeMediaHost = host;
+                if (_isPanelVisible)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try { PlayActiveWorkspaceMedia(); } catch { }
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            }
+        }
+
+        private void WorkspaceMediaHost_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ItemsControl host) return;
+            if (host.DataContext is not WorkspaceConfig ws) return;
+
+            if (_workspaceMediaHosts.TryGetValue(ws, out var existing) && ReferenceEquals(existing, host))
+                _workspaceMediaHosts.Remove(ws);
+
+            if (ReferenceEquals(_activeMediaHost, host))
+                _activeMediaHost = null;
         }
 
         private void ForceExit()
@@ -325,7 +468,6 @@ namespace EtherealBar
 
             try
             {
-                // Р—Р°РјРµРЅСЏРµРј Invoke РЅР° Р°СЃРёРЅС…СЂРѕРЅРЅС‹Р№ BeginInvoke, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ Р»СЋР±С‹С… Р±Р»РѕРєРёСЂРѕРІРѕРє РїСЂРё РІС‹РєР»СЋС‡РµРЅРёРё
                 if (!Dispatcher.CheckAccess())
                 {
                     Dispatcher.BeginInvoke(new Action(ForceExit));
@@ -339,12 +481,9 @@ namespace EtherealBar
                     _notifyIcon = null;
                 }
 
-                // РћСЃРІРѕР±РѕР¶РґР°РµРј РіРѕСЂСЏС‡СѓСЋ РєР»Р°РІРёС€Сѓ
                 IntPtr h = new WindowInteropHelper(this).Handle;
                 UnregisterHotKey(h, HOTKEY_ID);
 
-                // Р•СЃР»Рё РїРѕРґРїРёСЃС‹РІР°Р»РёСЃСЊ РЅР° Application.Current.SessionEnding, РѕС‚РїРёСЃС‹РІР°С‚СЊСЃСЏ РЅРµ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ, 
-                // С‚Р°Рє РєР°Рє РїСЂРёР»РѕР¶РµРЅРёРµ РІСЃС‘ СЂР°РІРЅРѕ СѓРЅРёС‡С‚РѕР¶Р°РµС‚СЃСЏ, РЅРѕ РґР»СЏ С‡РёСЃС‚РѕС‚С‹ РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ:
                 Application.Current.SessionEnding -= App_SessionEnding;
             }
             catch { }
@@ -396,18 +535,64 @@ namespace EtherealBar
                         {
                             PanelBackgroundColor = (Color)ColorConverter.ConvertFromString(s.PanelBackgroundColorHex);
                         }
-                        TileScale = s.TileScale;
-                        WidgetHeight = s.WidgetHeight;
                         PanelBackgroundOpacity = s.PanelBackgroundOpacity;
-                        Buttons.Clear();
-                        foreach (var b in s.Buttons) Buttons.Add(b);
+                        WidgetHeight = s.WidgetHeight;
+
+                        Workspaces.Clear();
+                        if (s.Workspaces != null && s.Workspaces.Count > 0)
+                        {
+                            foreach (var ws in s.Workspaces)
+                            {
+                                var buttons = ws.Buttons != null
+                                    ? new ObservableCollection<ButtonConfig>(ws.Buttons)
+                                    : new ObservableCollection<ButtonConfig>();
+                                Workspaces.Add(new WorkspaceConfig(ws.Name ?? "Основное", buttons));
+                            }
+                        }
+                        else
+                        {
+                            var legacyButtons = s.Buttons ?? new List<ButtonConfig>();
+                            Workspaces.Add(new WorkspaceConfig("Игры", new ObservableCollection<ButtonConfig>()));
+                            Workspaces.Add(new WorkspaceConfig("Программы", new ObservableCollection<ButtonConfig>(legacyButtons)));
+                            Workspaces.Add(new WorkspaceConfig("Документы", new ObservableCollection<ButtonConfig>()));
+                        }
+
+                        if (Workspaces.Count == 0)
+                            Workspaces.Add(new WorkspaceConfig("Основное", new ObservableCollection<ButtonConfig>()));
+
+                        WorkspaceConfig? initialWorkspace = null;
+                        if (!string.IsNullOrWhiteSpace(s.SelectedWorkspaceName))
+                        {
+                            initialWorkspace = Workspaces.FirstOrDefault(w =>
+                                string.Equals(w.Name, s.SelectedWorkspaceName, StringComparison.OrdinalIgnoreCase));
+                        }
+
+                        initialWorkspace ??=
+                            Workspaces.FirstOrDefault(w => string.Equals(w.Name, "Программы", StringComparison.OrdinalIgnoreCase))
+                            ?? Workspaces[0];
+
+                        SelectedWorkspace = initialWorkspace;
                     }
                 }
                 catch { }
 
+            if (Workspaces.Count == 0)
+            {
+                Workspaces.Add(new WorkspaceConfig("Игры", new ObservableCollection<ButtonConfig>()));
+                Workspaces.Add(new WorkspaceConfig("Программы", Buttons));
+                Workspaces.Add(new WorkspaceConfig("Документы", new ObservableCollection<ButtonConfig>()));
+            }
+
+            if (SelectedWorkspace == null)
+            {
+                SelectedWorkspace =
+                    Workspaces.FirstOrDefault(w => string.Equals(w.Name, "Программы", StringComparison.OrdinalIgnoreCase))
+                    ?? Workspaces[0];
+            }
+
             if (Buttons.Count == 0) Buttons.Add(new ButtonConfig { Title = "Desktop" });
 
-            foreach (var button in Buttons)
+            foreach (var button in Workspaces.SelectMany(w => w.Buttons))
             {
                 double? imageAspectRatio = MediaFileHelper.TryGetImageAspectRatio(button.Path);
                 if (imageAspectRatio.HasValue)
@@ -438,8 +623,16 @@ namespace EtherealBar
                     HoverColorHex = GlobalBorderBrush.ToString(),
                     PanelBackgroundColorHex = PanelBackgroundColor.ToString(),
                     WidgetHeight = WidgetHeight,
-                    TileScale = TileScale,
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
+                    SelectedWorkspaceName = SelectedWorkspace?.Name,
+                    Workspaces = Workspaces
+                        .Select(w => new WorkspaceSettings
+                        {
+                            Name = w.Name,
+                            Buttons = w.Buttons.ToList()
+                        })
+                        .ToList(),
+                    // Совместимость со старым форматом: сохраняем активную вкладку в поле Buttons.
                     Buttons = Buttons.ToList()
                 };
                 string? dir = Path.GetDirectoryName(settingsFile);
@@ -462,6 +655,14 @@ namespace EtherealBar
             _settingsWindow.Top = Math.Max(0, this.Top - _settingsWindow.Height - 10);
             _settingsWindow.Show();
             _settingsWindow.Activate();
+        }
+
+        private void WorkspaceTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is WorkspaceConfig ws)
+            {
+                SelectedWorkspace = ws;
+            }
         }
 
         private void Tile_Click(object sender, RoutedEventArgs e)
@@ -657,7 +858,13 @@ namespace EtherealBar
                     continue;
                 }
 
-                var presenter = MediaHost.ItemContainerGenerator.ContainerFromItem(candidate) as ContentPresenter;
+                var host = _activeMediaHost;
+                if (host == null)
+                {
+                    continue;
+                }
+
+                var presenter = host.ItemContainerGenerator.ContainerFromItem(candidate) as ContentPresenter;
                 if (presenter == null)
                 {
                     continue;
@@ -774,7 +981,27 @@ namespace EtherealBar
         public double WidgetHeight { get; set; } = 400;
         public double TileScale { get; set; } = 1.0;
         public double PanelBackgroundOpacity { get; set; } = 0.82;
+        public string? SelectedWorkspaceName { get; set; }
+        public List<WorkspaceSettings>? Workspaces { get; set; }
         public List<ButtonConfig> Buttons { get; set; } = new List<ButtonConfig>();
+    }
+
+    public class WorkspaceSettings
+    {
+        public string? Name { get; set; }
+        public List<ButtonConfig>? Buttons { get; set; }
+    }
+
+    public class WorkspaceConfig
+    {
+        public WorkspaceConfig(string name, ObservableCollection<ButtonConfig> buttons)
+        {
+            Name = name;
+            Buttons = buttons;
+        }
+
+        public string Name { get; set; }
+        public ObservableCollection<ButtonConfig> Buttons { get; }
     }
 
     public class ButtonConfig : INotifyPropertyChanged

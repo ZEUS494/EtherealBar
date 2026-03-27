@@ -12,12 +12,14 @@
         Topmost="True"
         x:Name="UIWindow"
         Focusable="True"
+        UseLayoutRounding="True"
         WindowStartupLocation="Manual">
 
     <Window.Resources>
         <local:TileWidthConverter x:Key="TileWidthConverter"/>
         <local:MediaOffsetConverter x:Key="MediaOffsetConverter"/>
         <local:MediaDimensionConverter x:Key="MediaDimensionConverter"/>
+        <local:ReferenceEqualsConverter x:Key="ReferenceEqualsConverter"/>
 
         <Style x:Key="EditControlStyle" TargetType="FrameworkElement">
             <Setter Property="Opacity" Value="0"/>
@@ -100,6 +102,50 @@
             <Setter Property="Margin" Value="4,8,4,0"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="Background" Value="#33000000"/>
+        </Style>
+
+        <Style x:Key="WorkspaceTabButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Background" Value="#1EFFFFFF"/>
+            <Setter Property="BorderBrush" Value="#28FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="TabBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#2CFFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#55FFFFFF"/>
+                            </Trigger>
+                            <DataTrigger Value="True">
+                                <DataTrigger.Binding>
+                                    <MultiBinding Converter="{StaticResource ReferenceEqualsConverter}">
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Tag"/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="SelectedWorkspace"/>
+                                    </MultiBinding>
+                                </DataTrigger.Binding>
+                                <Setter TargetName="TabBorder" Property="Background" Value="#34FFFFFF"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            </DataTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="TabBorder" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="EditDeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
@@ -231,6 +277,7 @@
                                     BorderThickness="2"
                                     BorderBrush="#30FFFFFF"
                                     CornerRadius="20"
+                                    ClipToBounds="True"
                                     RenderTransformOrigin="0.5,0.5">
                                 <Border.RenderTransform>
                                     <TransformGroup>
@@ -460,42 +507,114 @@
                     Background="Transparent"
                     Height="{Binding WidgetHeight}"
                     BorderThickness="0"
-                    Padding="0">
+                    Padding="0"
+                    SnapsToDevicePixels="True">
                 <Grid>
                     <Border Background="{Binding PanelBackgroundBrush}"
-                            BorderThickness="0"/>
+                            BorderThickness="0"
+                            SnapsToDevicePixels="True"
+                            ClipToBounds="True"/>
 
                     <Grid Margin="0">
                         <ScrollViewer x:Name="MainScrollViewer"
                                       HorizontalScrollBarVisibility="Hidden"
                                       VerticalScrollBarVisibility="Disabled"
                                       PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,8,0">
-                                <ItemsControl x:Name="MediaHost" ItemsSource="{Binding Buttons}">
+                            <Grid VerticalAlignment="Center" Margin="8,0,8,0">
+                                <ItemsControl ItemsSource="{Binding Workspaces}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal"/>
+                                            <Grid/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Style="{StaticResource TileButtonStyle}"
-                                                    Click="Tile_Click"
-                                                    PreviewMouseLeftButtonDown="Tile_PreviewMouseLeftButtonDown"
-                                                    PreviewMouseMove="Tile_PreviewMouseMove"
-                                                    PreviewMouseLeftButtonUp="Tile_PreviewMouseLeftButtonUp"
-                                                    LostMouseCapture="Tile_LostMouseCapture"/>
+                                            <Grid x:Name="WorkspacePanel">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <MultiBinding Converter="{StaticResource ReferenceEqualsConverter}">
+                                                                        <Binding/>
+                                                                        <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="SelectedWorkspace"/>
+                                                                    </MultiBinding>
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <ItemsControl ItemsSource="{Binding Buttons}"
+                                                                  Loaded="WorkspaceMediaHost_Loaded"
+                                                                  Unloaded="WorkspaceMediaHost_Unloaded">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Orientation="Horizontal"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Style="{StaticResource TileButtonStyle}"
+                                                                        Click="Tile_Click"
+                                                                        PreviewMouseLeftButtonDown="Tile_PreviewMouseLeftButtonDown"
+                                                                        PreviewMouseMove="Tile_PreviewMouseMove"
+                                                                        PreviewMouseLeftButtonUp="Tile_PreviewMouseLeftButtonUp"
+                                                                        LostMouseCapture="Tile_LostMouseCapture"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+
+                                                    <Button Content="+"
+                                                            Width="60"
+                                                            Height="{Binding DataContext.TileHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            Click="AddButton_Click"
+                                                            Margin="10,0"
+                                                            FontSize="30">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="+"
-                                        Width="60"
-                                        Height="{Binding TileHeight}"
-                                        Click="AddButton_Click"
-                                        Margin="10,0"
-                                        FontSize="30"
-                                        Style="{StaticResource RoundedButtonStyle}"/>
-                            </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      Margin="12,-40,160,0"
+                                      Panel.ZIndex="20"
+                                      VerticalAlignment="Top"
+                                      HorizontalAlignment="Left"
+                                      PanningMode="HorizontalOnly">
+                            <ItemsControl ItemsSource="{Binding Workspaces}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Name}"
+                                                Tag="{Binding}"
+                                                Style="{StaticResource WorkspaceTabButtonStyle}"
+                                                Click="WorkspaceTab_Click"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </ScrollViewer>
 
                         <StackPanel Orientation="Horizontal"
