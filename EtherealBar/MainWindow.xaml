@@ -105,13 +105,14 @@
         </Style>
 
         <Style x:Key="WorkspaceTabButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
             <Setter Property="Background" Value="#1EFFFFFF"/>
             <Setter Property="BorderBrush" Value="#28FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -119,7 +120,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12">
+                                CornerRadius="14">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}"/>
@@ -739,8 +740,7 @@
                                                                 Foreground="White"
                                                                 BorderBrush="Transparent"
                                                                 Cursor="Hand"
-                                                                Click="WorkspaceRenameButton_Click"
-                                                                PreviewMouseLeftButtonDown="WorkspaceAction_PreviewMouseLeftButtonDown">
+                                                                Click="WorkspaceRenameButton_Click">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
                                                                     <Border x:Name="b"
@@ -768,8 +768,7 @@
                                                                 Foreground="White"
                                                                 BorderBrush="Transparent"
                                                                 Cursor="Hand"
-                                                                Click="WorkspaceClose_Click"
-                                                                PreviewMouseLeftButtonDown="WorkspaceAction_PreviewMouseLeftButtonDown">
+                                                                Click="WorkspaceClose_Click">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
                                                                     <Border x:Name="b"

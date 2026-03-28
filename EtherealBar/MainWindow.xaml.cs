@@ -716,7 +716,15 @@ namespace EtherealBar
             }
         }
 
-        private void ToggleEditMode_Click(object sender, RoutedEventArgs e) { IsEditMode = !IsEditMode; if (!IsEditMode) SaveSettings(); }
+        private void ToggleEditMode_Click(object sender, RoutedEventArgs e)
+        {
+            IsEditMode = !IsEditMode;
+            if (!IsEditMode)
+            {
+                PruneEmptyWorkspaces();
+                SaveSettings();
+            }
+        }
         private void Close_Click(object sender, RoutedEventArgs e) { if (_isPanelVisible) TogglePanel(); }
         private void AddButton_Click(object sender, RoutedEventArgs e) { Buttons.Add(new ButtonConfig { Title = "New" }); }
         private void DeleteButton_Click(object sender, RoutedEventArgs e) { if (sender is Button b && b.Tag is ButtonConfig c) Buttons.Remove(c); }
@@ -812,14 +820,9 @@ namespace EtherealBar
             Dispatcher.BeginInvoke(new Action(() => FocusWorkspaceNameEditor(ws)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        private void WorkspaceAction_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            // чтобы клик по кнопкам не выбирал вкладку
-            e.Handled = true;
-        }
-
         private void WorkspaceClose_Click(object sender, RoutedEventArgs e)
         {
+            e.Handled = true;
             if (!IsEditMode) return;
             if (Workspaces.Count <= 1) return;
             if (sender is not Button b || b.Tag is not WorkspaceConfig ws) return;
@@ -841,6 +844,7 @@ namespace EtherealBar
 
         private void WorkspaceRenameButton_Click(object sender, RoutedEventArgs e)
         {
+            e.Handled = true;
             if (!IsEditMode) return;
             if (sender is not Button b || b.Tag is not WorkspaceConfig ws) return;
 
@@ -958,23 +962,35 @@ namespace EtherealBar
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (Workspaces.Count <= 1) return;
-                    if (!Workspaces.Contains(ws)) return;
-                    if (ws.Buttons.Count != 0) return;
-
-                    bool wasSelected = ReferenceEquals(SelectedWorkspace, ws);
-                    int idx = Workspaces.IndexOf(ws);
-                    Workspaces.Remove(ws);
-
-                    if (wasSelected && Workspaces.Count > 0)
-                    {
-                        int next = Math.Clamp(idx, 0, Workspaces.Count - 1);
-                        SelectedWorkspace = Workspaces[next];
-                    }
-
-                    SaveSettings();
+                    PruneEmptyWorkspaces();
                 }), System.Windows.Threading.DispatcherPriority.Background);
             }
+        }
+
+        private void PruneEmptyWorkspaces()
+        {
+            if (Workspaces.Count <= 1) return;
+
+            var empty = Workspaces.Where(w => w.Buttons.Count == 0).ToList();
+            if (empty.Count == 0) return;
+
+            foreach (var ws in empty)
+            {
+                if (Workspaces.Count <= 1) break;
+                if (!Workspaces.Contains(ws)) continue;
+
+                bool wasSelected = ReferenceEquals(SelectedWorkspace, ws);
+                int idx = Workspaces.IndexOf(ws);
+                Workspaces.Remove(ws);
+
+                if (wasSelected && Workspaces.Count > 0)
+                {
+                    int next = Math.Clamp(idx, 0, Workspaces.Count - 1);
+                    SelectedWorkspace = Workspaces[next];
+                }
+            }
+
+            SaveSettings();
         }
 
         private static bool ShouldCollapseDefaultWorkspacesToSinglePrograms(List<WorkspaceSettings> workspaces)
