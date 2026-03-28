@@ -1304,7 +1304,7 @@ namespace EtherealBar
         public List<ButtonConfig>? Buttons { get; set; }
     }
 
-    public class WorkspaceConfig
+    public class WorkspaceConfig : INotifyPropertyChanged
     {
         private string _name;
         private bool _isRenaming;
@@ -1323,7 +1323,7 @@ namespace EtherealBar
                 string v = value ?? string.Empty;
                 if (string.Equals(_name, v, StringComparison.Ordinal)) return;
                 _name = v;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+                OnPropertyChanged(nameof(Name));
             }
         }
 
@@ -1335,13 +1335,14 @@ namespace EtherealBar
             {
                 if (_isRenaming == value) return;
                 _isRenaming = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRenaming)));
+                OnPropertyChanged(nameof(IsRenaming));
             }
         }
 
         public ObservableCollection<ButtonConfig> Buttons { get; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
 
     public class ButtonConfig : INotifyPropertyChanged
