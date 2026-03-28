@@ -12,6 +12,12 @@ namespace EtherealBar
             return extension is ".mp4" or ".avi" or ".mov" or ".mkv";
         }
 
+        public static bool IsGifFile(string? path)
+        {
+            string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
+            return extension is ".gif";
+        }
+
         public static double? TryGetImageAspectRatio(string? path)
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || IsVideoFile(path))

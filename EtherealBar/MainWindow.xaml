@@ -345,9 +345,56 @@
                                                     </TransformGroup>
                                                 </MediaElement.RenderTransform>
                                             </MediaElement>
+                                            <local:AnimatedGifImage SourcePath="{Binding Path}"
+                                                                    Stretch="Fill"
+                                                                    Visibility="{Binding IsGifVisible}"
+                                                                    RenderTransformOrigin="0.5,0.5"
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center">
+                                                <local:AnimatedGifImage.Width>
+                                                    <MultiBinding Converter="{StaticResource MediaDimensionConverter}" ConverterParameter="Width">
+                                                        <Binding ElementName="MediaViewport" Path="ActualWidth"/>
+                                                        <Binding ElementName="MediaViewport" Path="ActualHeight"/>
+                                                        <Binding Path="SourceAspectRatio"/>
+                                                    </MultiBinding>
+                                                </local:AnimatedGifImage.Width>
+                                                <local:AnimatedGifImage.Height>
+                                                    <MultiBinding Converter="{StaticResource MediaDimensionConverter}" ConverterParameter="Height">
+                                                        <Binding ElementName="MediaViewport" Path="ActualWidth"/>
+                                                        <Binding ElementName="MediaViewport" Path="ActualHeight"/>
+                                                        <Binding Path="SourceAspectRatio"/>
+                                                    </MultiBinding>
+                                                </local:AnimatedGifImage.Height>
+                                                <local:AnimatedGifImage.RenderTransform>
+                                                    <TransformGroup>
+                                                        <ScaleTransform ScaleX="{Binding MediaScale}" ScaleY="{Binding MediaScale}"/>
+                                                        <TranslateTransform>
+                                                            <TranslateTransform.X>
+                                                                <MultiBinding Converter="{StaticResource MediaOffsetConverter}" ConverterParameter="X">
+                                                                    <Binding Path="MediaOffsetX"/>
+                                                                    <Binding ElementName="MediaViewport" Path="ActualWidth"/>
+                                                                    <Binding ElementName="MediaViewport" Path="ActualHeight"/>
+                                                                    <Binding Path="MediaScale"/>
+                                                                    <Binding Path="SourceAspectRatio"/>
+                                                                </MultiBinding>
+                                                            </TranslateTransform.X>
+                                                            <TranslateTransform.Y>
+                                                                <MultiBinding Converter="{StaticResource MediaOffsetConverter}" ConverterParameter="Y">
+                                                                    <Binding Path="MediaOffsetY"/>
+                                                                    <Binding ElementName="MediaViewport" Path="ActualWidth"/>
+                                                                    <Binding ElementName="MediaViewport" Path="ActualHeight"/>
+                                                                    <Binding Path="MediaScale"/>
+                                                                    <Binding Path="SourceAspectRatio"/>
+                                                                </MultiBinding>
+                                                            </TranslateTransform.Y>
+                                                        </TranslateTransform>
+                                                    </TransformGroup>
+                                                </local:AnimatedGifImage.RenderTransform>
+                                            </local:AnimatedGifImage>
+
                                             <Image Source="{Binding Path}"
                                                    Stretch="Fill"
-                                                   Visibility="{Binding IsImageVisible}"
+                                                   Visibility="{Binding IsStaticImageVisible}"
                                                    RenderTransformOrigin="0.5,0.5"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center">
@@ -600,21 +647,55 @@
                                       VerticalAlignment="Top"
                                       HorizontalAlignment="Left"
                                       PanningMode="HorizontalOnly">
-                            <ItemsControl ItemsSource="{Binding Workspaces}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{Binding Name}"
-                                                Tag="{Binding}"
-                                                Style="{StaticResource WorkspaceTabButtonStyle}"
-                                                Click="WorkspaceTab_Click"/>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal">
+                                <ItemsControl ItemsSource="{Binding Workspaces}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Content="{Binding Name}"
+                                                    Tag="{Binding}"
+                                                    Style="{StaticResource WorkspaceTabButtonStyle}"
+                                                    Click="WorkspaceTab_Click"
+                                                    ContextMenuOpening="WorkspaceTab_ContextMenuOpening">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Переименовать"
+                                                                  Click="WorkspaceRename_Click"
+                                                                  Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                        <MenuItem Header="Удалить"
+                                                                  Click="WorkspaceDelete_Click"
+                                                                  Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Content="+"
+                                        Width="40"
+                                        Height="36"
+                                        Margin="8,0,0,0"
+                                        FontSize="18"
+                                        VerticalAlignment="Center"
+                                        ToolTip="Добавить вкладку"
+                                        Click="AddWorkspace_Click">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CanAddWorkspace, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
                         </ScrollViewer>
 
                         <StackPanel Orientation="Horizontal"

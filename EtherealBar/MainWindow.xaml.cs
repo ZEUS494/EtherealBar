@@ -32,6 +32,7 @@ namespace EtherealBar
         [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
         [DllImport("psapi.dll")] private static extern bool EmptyWorkingSet(IntPtr hProcess);
         private const int HOTKEY_ID = 9000;
+        private const int MaxWorkspaces = 5;
 
         private ObservableCollection<ButtonConfig> _buttons = new ObservableCollection<ButtonConfig>();
         public ObservableCollection<ButtonConfig> Buttons
@@ -119,6 +120,7 @@ namespace EtherealBar
                 _isEditMode = value;
                 OnPropertyChanged(nameof(IsEditMode));
                 OnPropertyChanged(nameof(MinWidgetHeight));
+                OnPropertyChanged(nameof(CanAddWorkspace));
 
                 if (_isEditMode && WidgetHeight < MinWidgetHeightInEditMode)
                 {
@@ -126,6 +128,8 @@ namespace EtherealBar
                 }
             }
         }
+
+        public bool CanAddWorkspace => IsEditMode && Workspaces.Count < MaxWorkspaces;
         public Brush GlobalBorderBrush { get => _globalBorderBrush; set { _globalBorderBrush = value; OnPropertyChanged(nameof(GlobalBorderBrush)); } }
         public Color PanelBackgroundColor
         {
@@ -183,6 +187,7 @@ namespace EtherealBar
         {
             InitializeComponent();
             this.DataContext = this;
+            Workspaces.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CanAddWorkspace));
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
             Application.Current.Exit += OnAppExit;
             Application.Current.SessionEnding += App_SessionEnding;
@@ -541,7 +546,7 @@ namespace EtherealBar
                         Workspaces.Clear();
                         if (s.Workspaces != null && s.Workspaces.Count > 0)
                         {
-                            foreach (var ws in s.Workspaces)
+                            foreach (var ws in s.Workspaces.Take(MaxWorkspaces))
                             {
                                 var buttons = ws.Buttons != null
                                     ? new ObservableCollection<ButtonConfig>(ws.Buttons)
@@ -552,13 +557,12 @@ namespace EtherealBar
                         else
                         {
                             var legacyButtons = s.Buttons ?? new List<ButtonConfig>();
-                            Workspaces.Add(new WorkspaceConfig("Игры", new ObservableCollection<ButtonConfig>()));
+                            // По умолчанию создаём одну вкладку "Программы" и переносим туда старые карточки.
                             Workspaces.Add(new WorkspaceConfig("Программы", new ObservableCollection<ButtonConfig>(legacyButtons)));
-                            Workspaces.Add(new WorkspaceConfig("Документы", new ObservableCollection<ButtonConfig>()));
                         }
 
                         if (Workspaces.Count == 0)
-                            Workspaces.Add(new WorkspaceConfig("Основное", new ObservableCollection<ButtonConfig>()));
+                            Workspaces.Add(new WorkspaceConfig("Программы", new ObservableCollection<ButtonConfig>()));
 
                         WorkspaceConfig? initialWorkspace = null;
                         if (!string.IsNullOrWhiteSpace(s.SelectedWorkspaceName))
@@ -578,9 +582,7 @@ namespace EtherealBar
 
             if (Workspaces.Count == 0)
             {
-                Workspaces.Add(new WorkspaceConfig("Игры", new ObservableCollection<ButtonConfig>()));
                 Workspaces.Add(new WorkspaceConfig("Программы", Buttons));
-                Workspaces.Add(new WorkspaceConfig("Документы", new ObservableCollection<ButtonConfig>()));
             }
 
             if (SelectedWorkspace == null)
@@ -752,6 +754,88 @@ namespace EtherealBar
             cropWindow.Left = this.Left + 40;
             cropWindow.Top = Math.Max(0, this.Top - 40);
             return cropWindow.ShowDialog() == true;
+        }
+
+        private void AddWorkspace_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsEditMode) return;
+            if (Workspaces.Count >= MaxWorkspaces) return;
+
+            string proposed = $"Вкладка {Workspaces.Count + 1}";
+            string? name = TextPromptDialog.Show(this, "Новая вкладка", "Введите название вкладки:", proposed);
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            name = MakeUniqueWorkspaceName(name, null);
+            var ws = new WorkspaceConfig(name, new ObservableCollection<ButtonConfig>());
+            Workspaces.Add(ws);
+            SelectedWorkspace = ws;
+            SaveSettings();
+        }
+
+        private void WorkspaceTab_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (!IsEditMode)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void WorkspaceRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsEditMode) return;
+            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not WorkspaceConfig ws) return;
+
+            string? name = TextPromptDialog.Show(this, "Переименовать вкладку", "Введите новое название:", ws.Name);
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            ws.Name = MakeUniqueWorkspaceName(name, ws);
+            OnPropertyChanged(nameof(SelectedWorkspace)); // keep bindings fresh
+            SaveSettings();
+        }
+
+        private void WorkspaceDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsEditMode) return;
+            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not WorkspaceConfig ws) return;
+            if (Workspaces.Count <= 1) return;
+
+            int index = Workspaces.IndexOf(ws);
+            if (index < 0) return;
+
+            bool wasSelected = ReferenceEquals(SelectedWorkspace, ws);
+            Workspaces.Remove(ws);
+
+            if (wasSelected)
+            {
+                int nextIndex = Math.Clamp(index, 0, Workspaces.Count - 1);
+                SelectedWorkspace = Workspaces[nextIndex];
+            }
+
+            SaveSettings();
+        }
+
+        private string MakeUniqueWorkspaceName(string proposed, WorkspaceConfig? self)
+        {
+            string baseName = (proposed ?? string.Empty).Trim();
+            if (baseName.Length == 0) baseName = "Программы";
+
+            bool Conflicts(string n) =>
+                Workspaces.Any(w =>
+                    !ReferenceEquals(w, self) &&
+                    string.Equals(w.Name, n, StringComparison.OrdinalIgnoreCase));
+
+            if (!Conflicts(baseName))
+                return baseName;
+
+            for (int i = 2; i <= 99; i++)
+            {
+                string candidate = $"{baseName} ({i})";
+                if (!Conflicts(candidate))
+                    return candidate;
+            }
+
+            // Fallback: timestamp suffix
+            return $"{baseName} ({DateTime.Now:HHmmss})";
         }
 
         private void Tile_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -994,14 +1078,29 @@ namespace EtherealBar
 
     public class WorkspaceConfig
     {
+        private string _name;
+
         public WorkspaceConfig(string name, ObservableCollection<ButtonConfig> buttons)
         {
-            Name = name;
+            _name = name;
             Buttons = buttons;
         }
 
-        public string Name { get; set; }
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                string v = value ?? string.Empty;
+                if (string.Equals(_name, v, StringComparison.Ordinal)) return;
+                _name = v;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+            }
+        }
+
         public ObservableCollection<ButtonConfig> Buttons { get; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     public class ButtonConfig : INotifyPropertyChanged
@@ -1022,7 +1121,18 @@ namespace EtherealBar
 
         public string AppPath { get; set; } = "explorer.exe";
         public string Title { get => _t; set { _t = value; OnPropertyChanged(nameof(Title)); } }
-        public string Path { get => _p; set { _p = value; OnPropertyChanged(nameof(Path)); OnPropertyChanged(nameof(IsVideoVisible)); OnPropertyChanged(nameof(IsImageVisible)); } }
+        public string Path
+        {
+            get => _p;
+            set
+            {
+                _p = value;
+                OnPropertyChanged(nameof(Path));
+                OnPropertyChanged(nameof(IsVideoVisible));
+                OnPropertyChanged(nameof(IsGifVisible));
+                OnPropertyChanged(nameof(IsStaticImageVisible));
+            }
+        }
         public double MediaScale { get => _mediaScale; set { _mediaScale = Math.Max(1.0, value); OnPropertyChanged(nameof(MediaScale)); } }
         public double MediaOffsetX { get => _mediaOffsetX; set { _mediaOffsetX = Math.Clamp(value, -1, 1); OnPropertyChanged(nameof(MediaOffsetX)); } }
         public double MediaOffsetY { get => _mediaOffsetY; set { _mediaOffsetY = Math.Clamp(value, -1, 1); OnPropertyChanged(nameof(MediaOffsetY)); } }
@@ -1061,7 +1171,9 @@ namespace EtherealBar
         }
 
         [JsonIgnore] public Visibility IsVideoVisible => MediaFileHelper.IsVideoFile(Path) ? Visibility.Visible : Visibility.Collapsed;
-        [JsonIgnore] public Visibility IsImageVisible => IsVideoVisible == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+        [JsonIgnore] public Visibility IsGifVisible => MediaFileHelper.IsGifFile(Path) ? Visibility.Visible : Visibility.Collapsed;
+        [JsonIgnore] public Visibility IsStaticImageVisible =>
+            (!MediaFileHelper.IsVideoFile(Path) && !MediaFileHelper.IsGifFile(Path)) ? Visibility.Visible : Visibility.Collapsed;
         [JsonIgnore] public bool IsDragging { get => _isDragging; set { _isDragging = value; OnPropertyChanged(nameof(IsDragging)); } }
         [JsonIgnore] public bool IsDropTarget { get => _isDropTarget; set { _isDropTarget = value; OnPropertyChanged(nameof(IsDropTarget)); } }
 
