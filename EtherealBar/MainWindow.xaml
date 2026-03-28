@@ -578,7 +578,18 @@
                                       HorizontalScrollBarVisibility="Hidden"
                                       VerticalScrollBarVisibility="Hidden"
                                       PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-                            <Grid VerticalAlignment="Center" Margin="8,0,8,0">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <!-- In vertical dock, tiles scale up on hover; add headroom so they don't get clipped at the scroll bounds. -->
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <Setter Property="Padding" Value="8,18,8,18"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <Grid VerticalAlignment="Center" Margin="8,0,8,0" ClipToBounds="False">
                                 <ItemsControl ItemsSource="{Binding Workspaces}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
