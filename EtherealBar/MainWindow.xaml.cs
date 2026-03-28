@@ -213,8 +213,11 @@ namespace EtherealBar
         public bool IsVerticalDock => PanelDock == PanelDockPosition.Left || PanelDock == PanelDockPosition.Right;
         public bool IsHorizontalDock => !IsVerticalDock;
 
-        // "Minor" tile dimension: height for bottom/top dock, width for left/right dock.
-        public double TileMinor => TileHeight;
+        // "Minor" tile dimension: cross-axis size for a tile.
+        // Bottom/Top: we keep a constant tile height (cross-axis is vertical).
+        // Left/Right: we keep a constant tile width (cross-axis is horizontal), but use the old TileWidth
+        // so vertical cards don't become gigantic.
+        public double TileMinor => IsVerticalDock ? TileWidth : TileHeight;
 
         public double PanelHeight => IsVerticalDock ? SystemParameters.WorkArea.Height : WidgetHeight;
         public double PanelWidth => IsVerticalDock ? WidgetHeight : SystemParameters.PrimaryScreenWidth;
@@ -434,11 +437,13 @@ namespace EtherealBar
                     WorkspaceTabsScrollViewer.HorizontalAlignment =
                         PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
 
-                    double xOffset = PanelWidth + OverlayGap;
+                    double xOffset = PanelWidth + OverlayGap + 12;
+                    // Leave space for the top-right buttons so they don't overlap the first tab.
+                    const double topOffset = 62;
                     if (PanelDock == PanelDockPosition.Left)
-                        WorkspaceTabsScrollViewer.Margin = new Thickness(xOffset, 12, 12, 0);
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(xOffset, topOffset, 12, 12);
                     else
-                        WorkspaceTabsScrollViewer.Margin = new Thickness(12, 12, xOffset, 0);
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(12, topOffset, xOffset, 12);
                 }
                 else
                 {
@@ -469,13 +474,13 @@ namespace EtherealBar
                     TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
                     TopRightButtonsPanel.HorizontalAlignment =
                         PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
-                    TopRightButtonsPanel.Margin = new Thickness(12, 12, 12, 0);
+                    TopRightButtonsPanel.RenderTransform = null;
 
-                    double xOffset = PanelWidth + OverlayGap;
-                    TopRightButtonsPanel.RenderTransform =
-                        PanelDock == PanelDockPosition.Left
-                            ? new TranslateTransform(xOffset, 0)
-                            : new TranslateTransform(-xOffset, 0);
+                    double xOffset = PanelWidth + OverlayGap + 12;
+                    if (PanelDock == PanelDockPosition.Left)
+                        TopRightButtonsPanel.Margin = new Thickness(xOffset, 12, 12, 0);
+                    else
+                        TopRightButtonsPanel.Margin = new Thickness(12, 12, xOffset, 0);
                 }
                 else
                 {

@@ -270,6 +270,11 @@
                 </Setter.Value>
             </Setter>
             <Setter Property="Margin" Value="10,0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Margin" Value="10,10"/>
+                </DataTrigger>
+            </Style.Triggers>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
