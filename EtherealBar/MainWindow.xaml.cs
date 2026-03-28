@@ -108,6 +108,9 @@ namespace EtherealBar
         private ItemsControl? _activeMediaHost;
         private SettingsWindow? _settingsWindow;
         private Forms.NotifyIcon? _notifyIcon;
+        private readonly HashSet<WorkspaceConfig> _workspaceHooks = new HashSet<WorkspaceConfig>();
+        private readonly Dictionary<WorkspaceConfig, int> _workspaceLastCounts = new Dictionary<WorkspaceConfig, int>();
+        private bool _isLoadingSettings;
 
         public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
 
@@ -535,6 +538,7 @@ namespace EtherealBar
 
         private void LoadSettings()
         {
+            _isLoadingSettings = true;
             if (File.Exists(settingsFile)) try
                 {
                     var s = JsonConvert.DeserializeObject<AppSettings>(File.ReadAllText(settingsFile));
@@ -620,6 +624,14 @@ namespace EtherealBar
                     Workspaces.FirstOrDefault(w => string.Equals(w.Name, "Программы", StringComparison.OrdinalIgnoreCase))
                     ?? Workspaces[0];
             }
+
+            // Hook workspace button lists for auto-cleanup and rename focus.
+            foreach (var ws in Workspaces)
+            {
+                HookWorkspace(ws);
+            }
+
+            _isLoadingSettings = false;
 
             if (Buttons.Count == 0) Buttons.Add(new ButtonConfig { Title = "Desktop" });
 
@@ -793,15 +805,16 @@ namespace EtherealBar
             string name = MakeUniqueWorkspaceName($"Вкладка {Workspaces.Count + 1}", null);
             var ws = new WorkspaceConfig(name, new ObservableCollection<ButtonConfig>());
             Workspaces.Add(ws);
+            HookWorkspace(ws);
             SelectedWorkspace = ws;
             SaveSettings();
 
             Dispatcher.BeginInvoke(new Action(() => FocusWorkspaceNameEditor(ws)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        private void WorkspaceClose_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void WorkspaceAction_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // чтобы клик по кресту не выбирал вкладку
+            // чтобы клик по кнопкам не выбирал вкладку
             e.Handled = true;
         }
 
@@ -824,6 +837,15 @@ namespace EtherealBar
             }
 
             SaveSettings();
+        }
+
+        private void WorkspaceRenameButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsEditMode) return;
+            if (sender is not Button b || b.Tag is not WorkspaceConfig ws) return;
+
+            ws.IsRenaming = true;
+            Dispatcher.BeginInvoke(new Action(() => FocusWorkspaceNameEditor(ws)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void WorkspaceName_GotFocus(object sender, RoutedEventArgs e)
@@ -849,6 +871,10 @@ namespace EtherealBar
                 {
                     tb.Text = original;
                 }
+                if (tb.DataContext is WorkspaceConfig ws)
+                {
+                    ws.IsRenaming = false;
+                }
                 MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
                 e.Handled = true;
             }
@@ -867,6 +893,7 @@ namespace EtherealBar
             if (!string.Equals(ws.Name, unique, StringComparison.Ordinal))
                 ws.Name = unique;
 
+            ws.IsRenaming = false;
             SaveSettings();
         }
 
@@ -906,6 +933,48 @@ namespace EtherealBar
 
             tb.Focus();
             tb.SelectAll();
+        }
+
+        private void HookWorkspace(WorkspaceConfig ws)
+        {
+            if (_workspaceHooks.Contains(ws))
+                return;
+
+            _workspaceHooks.Add(ws);
+            _workspaceLastCounts[ws] = ws.Buttons.Count;
+            ws.Buttons.CollectionChanged += (_, __) => OnWorkspaceButtonsChanged(ws);
+        }
+
+        private void OnWorkspaceButtonsChanged(WorkspaceConfig ws)
+        {
+            if (_isLoadingSettings) return;
+
+            int last = _workspaceLastCounts.TryGetValue(ws, out var v) ? v : ws.Buttons.Count;
+            int now = ws.Buttons.Count;
+            _workspaceLastCounts[ws] = now;
+
+            // Auto-remove workspace when user deleted all cards from it (but never remove the last workspace).
+            if (last > 0 && now == 0)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (Workspaces.Count <= 1) return;
+                    if (!Workspaces.Contains(ws)) return;
+                    if (ws.Buttons.Count != 0) return;
+
+                    bool wasSelected = ReferenceEquals(SelectedWorkspace, ws);
+                    int idx = Workspaces.IndexOf(ws);
+                    Workspaces.Remove(ws);
+
+                    if (wasSelected && Workspaces.Count > 0)
+                    {
+                        int next = Math.Clamp(idx, 0, Workspaces.Count - 1);
+                        SelectedWorkspace = Workspaces[next];
+                    }
+
+                    SaveSettings();
+                }), System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
 
         private static bool ShouldCollapseDefaultWorkspacesToSinglePrograms(List<WorkspaceSettings> workspaces)
@@ -1208,6 +1277,7 @@ namespace EtherealBar
     public class WorkspaceConfig
     {
         private string _name;
+        private bool _isRenaming;
 
         public WorkspaceConfig(string name, ObservableCollection<ButtonConfig> buttons)
         {
@@ -1224,6 +1294,18 @@ namespace EtherealBar
                 if (string.Equals(_name, v, StringComparison.Ordinal)) return;
                 _name = v;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+            }
+        }
+
+        [JsonIgnore]
+        public bool IsRenaming
+        {
+            get => _isRenaming;
+            set
+            {
+                if (_isRenaming == value) return;
+                _isRenaming = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRenaming)));
             }
         }
 

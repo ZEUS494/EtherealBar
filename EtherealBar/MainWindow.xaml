@@ -660,28 +660,31 @@
                                                     Style="{StaticResource WorkspaceTabButtonStyle}"
                                                     Click="WorkspaceTab_Click">
                                                 <Grid>
-                                                    <TextBlock Text="{Binding Name}"
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Name}"
                                                                VerticalAlignment="Center"
-                                                               HorizontalAlignment="Center"
-                                                               Margin="0">
+                                                               HorizontalAlignment="Center">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Setter Property="Visibility" Value="Visible"/>
-                                                                <Setter Property="Margin" Value="0"/>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <DataTrigger Binding="{Binding IsRenaming}" Value="True">
                                                                         <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        <Setter Property="Margin" Value="0,0,16,0"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </TextBlock.Style>
                                                     </TextBlock>
 
-                                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                                    <TextBox Grid.Column="0"
+                                                             Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                                                              VerticalAlignment="Center"
                                                              HorizontalAlignment="Center"
-                                                             Margin="0,0,16,0"
                                                              MinWidth="90"
                                                              MaxWidth="170"
                                                              MaxLength="24"
@@ -697,59 +700,92 @@
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Setter Property="Margin" Value="0"/>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <DataTrigger Binding="{Binding IsRenaming}" Value="True">
                                                                         <Setter Property="Visibility" Value="Visible"/>
-                                                                        <Setter Property="Margin" Value="0,0,16,0"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </TextBox.Style>
                                                     </TextBox>
 
-                                                    <Button Content="✕"
-                                                            Width="18"
-                                                            Height="18"
-                                                            FontSize="11"
-                                                            Padding="0"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Top"
-                                                            Margin="0,-2,-2,0"
-                                                            Tag="{Binding}"
-                                                            Background="#AA7A0000"
-                                                            Foreground="White"
-                                                            BorderBrush="Transparent"
-                                                            Cursor="Hand"
-                                                            Click="WorkspaceClose_Click"
-                                                            PreviewMouseLeftButtonDown="WorkspaceClose_PreviewMouseLeftButtonDown">
-                                                        <Button.Style>
-                                                            <Style TargetType="Button">
+                                                    <StackPanel Grid.Column="1"
+                                                                Orientation="Horizontal"
+                                                                VerticalAlignment="Center"
+                                                                Margin="8,0,0,0">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Setter Property="Template">
-                                                                    <Setter.Value>
-                                                                        <ControlTemplate TargetType="Button">
-                                                                            <Border x:Name="b"
-                                                                                    Background="{TemplateBinding Background}"
-                                                                                    CornerRadius="9">
-                                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                            </Border>
-                                                                            <ControlTemplate.Triggers>
-                                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                                    <Setter TargetName="b" Property="Background" Value="#CCB00020"/>
-                                                                                </Trigger>
-                                                                            </ControlTemplate.Triggers>
-                                                                        </ControlTemplate>
-                                                                    </Setter.Value>
-                                                                </Setter>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding CanDeleteWorkspaces, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                            <Condition Binding="{Binding CanDeleteWorkspaces, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                        </MultiDataTrigger.Conditions>
                                                                         <Setter Property="Visibility" Value="Visible"/>
-                                                                    </DataTrigger>
+                                                                    </MultiDataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </Button.Style>
-                                                    </Button>
+                                                        </StackPanel.Style>
+
+                                                        <Button Content="✎"
+                                                                Width="18"
+                                                                Height="18"
+                                                                FontSize="11"
+                                                                Padding="0"
+                                                                Margin="0,-2,6,0"
+                                                                Tag="{Binding}"
+                                                                Background="#4FFFFFFF"
+                                                                Foreground="White"
+                                                                BorderBrush="Transparent"
+                                                                Cursor="Hand"
+                                                                Click="WorkspaceRenameButton_Click"
+                                                                PreviewMouseLeftButtonDown="WorkspaceAction_PreviewMouseLeftButtonDown">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="b"
+                                                                            Background="{TemplateBinding Background}"
+                                                                            CornerRadius="9">
+                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="b" Property="Background" Value="#66FFFFFF"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+
+                                                        <Button Content="✕"
+                                                                Width="18"
+                                                                Height="18"
+                                                                FontSize="11"
+                                                                Padding="0"
+                                                                Margin="0,-2,0,0"
+                                                                Tag="{Binding}"
+                                                                Background="#AA7A0000"
+                                                                Foreground="White"
+                                                                BorderBrush="Transparent"
+                                                                Cursor="Hand"
+                                                                Click="WorkspaceClose_Click"
+                                                                PreviewMouseLeftButtonDown="WorkspaceAction_PreviewMouseLeftButtonDown">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="b"
+                                                                            Background="{TemplateBinding Background}"
+                                                                            CornerRadius="9">
+                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="b" Property="Background" Value="#CCB00020"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
                                             </Button>
                                         </DataTemplate>
