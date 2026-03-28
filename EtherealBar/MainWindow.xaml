@@ -663,13 +663,15 @@
                                                     <TextBlock Text="{Binding Name}"
                                                                VerticalAlignment="Center"
                                                                HorizontalAlignment="Center"
-                                                               Margin="0,0,16,0">
+                                                               Margin="0">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Setter Property="Visibility" Value="Visible"/>
+                                                                <Setter Property="Margin" Value="0"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                                                         <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Setter Property="Margin" Value="0,0,16,0"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -695,9 +697,11 @@
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Setter Property="Margin" Value="0"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                                                         <Setter Property="Visibility" Value="Visible"/>
+                                                                        <Setter Property="Margin" Value="0,0,16,0"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>

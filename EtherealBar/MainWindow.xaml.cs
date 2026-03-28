@@ -549,6 +549,7 @@ namespace EtherealBar
                         PanelBackgroundOpacity = s.PanelBackgroundOpacity;
                         WidgetHeight = s.WidgetHeight;
 
+                        bool collapsedToSingle = false;
                         Workspaces.Clear();
                         if (s.Workspaces != null && s.Workspaces.Count > 0)
                         {
@@ -563,6 +564,7 @@ namespace EtherealBar
                                     ? new ObservableCollection<ButtonConfig>(programs.Buttons)
                                     : new ObservableCollection<ButtonConfig>();
                                 Workspaces.Add(new WorkspaceConfig("Программы", buttons));
+                                collapsedToSingle = true;
                             }
                             else
                             {
@@ -597,6 +599,12 @@ namespace EtherealBar
                             ?? Workspaces[0];
 
                         SelectedWorkspace = initialWorkspace;
+
+                        if (collapsedToSingle)
+                        {
+                            // Persist the migration so next launches don't show old default tabs.
+                            try { SaveSettings(); } catch { }
+                        }
                     }
                 }
                 catch { }
@@ -924,10 +932,39 @@ namespace EtherealBar
                 if (string.Equals(n, "Программы", StringComparison.OrdinalIgnoreCase))
                     return true;
 
-                return ws.Buttons == null || ws.Buttons.Count == 0;
+                return IsWorkspaceEffectivelyEmpty(ws);
             });
 
             return othersEmpty;
+        }
+
+        private static bool IsWorkspaceEffectivelyEmpty(WorkspaceSettings ws)
+        {
+            if (ws.Buttons == null || ws.Buttons.Count == 0)
+                return true;
+
+            // Some older versions created "заглушки" (пустые карточки).
+            // Если во вкладке только такие элементы, считаем её пустой для миграции.
+            return ws.Buttons.All(IsPlaceholderButton);
+        }
+
+        private static bool IsPlaceholderButton(ButtonConfig b)
+        {
+            if (b == null) return true;
+
+            bool hasMedia = !string.IsNullOrWhiteSpace(b.Path);
+            if (hasMedia) return false;
+
+            string app = (b.AppPath ?? string.Empty).Trim();
+            bool isDefaultApp = app.Length == 0
+                                || string.Equals(app, "explorer.exe", StringComparison.OrdinalIgnoreCase);
+
+            string title = (b.Title ?? string.Empty).Trim();
+            bool isDefaultTitle = title.Length == 0
+                                  || string.Equals(title, "New", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(title, "Desktop", StringComparison.OrdinalIgnoreCase);
+
+            return isDefaultApp && isDefaultTitle;
         }
 
         private void Tile_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
