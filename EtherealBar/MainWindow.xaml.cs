@@ -71,6 +71,7 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(SelectedWorkspace));
                 OnPropertyChanged(nameof(PanelWidth));
                 OnPropertyChanged(nameof(AddTileButtonWidth));
+                RequestLayoutMetricsUpdate();
 
                 if (_isPanelVisible)
                 {
@@ -129,6 +130,7 @@ namespace EtherealBar
         private readonly Dictionary<WorkspaceConfig, int> _workspaceLastCounts = new Dictionary<WorkspaceConfig, int>();
         private bool _isLoadingSettings;
         private readonly HashSet<ButtonConfig> _subscribedButtons = new HashSet<ButtonConfig>();
+        private bool _layoutUpdatePending;
 
         public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
 
@@ -1249,6 +1251,7 @@ namespace EtherealBar
                 RebuildButtonSubscriptions();
                 OnPropertyChanged(nameof(PanelWidth));
                 OnPropertyChanged(nameof(AddTileButtonWidth));
+                RequestLayoutMetricsUpdate();
             };
         }
 
@@ -1273,6 +1276,7 @@ namespace EtherealBar
             {
                 OnPropertyChanged(nameof(PanelWidth));
                 OnPropertyChanged(nameof(AddTileButtonWidth));
+                RequestLayoutMetricsUpdate();
             }
         }
 
@@ -1325,7 +1329,20 @@ namespace EtherealBar
             {
                 OnPropertyChanged(nameof(PanelWidth));
                 OnPropertyChanged(nameof(AddTileButtonWidth));
+                RequestLayoutMetricsUpdate();
             }
+        }
+
+        private void RequestLayoutMetricsUpdate()
+        {
+            if (_layoutUpdatePending) return;
+            _layoutUpdatePending = true;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _layoutUpdatePending = false;
+                try { UpdateLayoutMetrics(); } catch { }
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         private static bool ShouldCollapseDefaultWorkspacesToSinglePrograms(List<WorkspaceSettings> workspaces)
