@@ -473,13 +473,18 @@
                                                  TextAlignment="Center"/>
                                         <StackPanel Margin="0,4,0,0">
                                             <StackPanel.Style>
-                                                <Style TargetType="StackPanel" BasedOn="{StaticResource EditControlStyle}">
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Opacity" Value="0"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <!-- Hide the horizontal "format" slider when docked left/right. -->
-                                                        <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                            <Setter Property="Opacity" Value="0"/>
-                                                        </DataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                <Condition Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                        </MultiDataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
@@ -499,13 +504,18 @@
 
                                         <StackPanel Margin="0,4,0,0">
                                             <StackPanel.Style>
-                                                <Style TargetType="StackPanel" BasedOn="{StaticResource EditControlStyle}">
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Opacity" Value="0"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <!-- Hide the vertical height slider when docked top/bottom. -->
-                                                        <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                            <Setter Property="Opacity" Value="0"/>
-                                                        </DataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                <Condition Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                        </MultiDataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
