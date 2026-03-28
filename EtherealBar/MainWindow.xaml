@@ -116,7 +116,7 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#2CFFFFFF"/>
-                    <Setter Property="BorderBrush" Value="#55FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
                 </Trigger>
                 <DataTrigger Value="True">
                     <DataTrigger.Binding>
@@ -126,7 +126,8 @@
                         </MultiBinding>
                     </DataTrigger.Binding>
                     <Setter Property="Background" Value="#34FFFFFF"/>
-                    <Setter Property="BorderBrush" Value="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    <!-- Border accent should be hover-only; keep selected border neutral. -->
+                    <Setter Property="BorderBrush" Value="#28FFFFFF"/>
                 </DataTrigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.5"/>
@@ -653,6 +654,7 @@
 
                                                     <TextBlock Grid.Column="0"
                                                                Text="{Binding Name}"
+                                                               Foreground="White"
                                                                VerticalAlignment="Center"
                                                                HorizontalAlignment="Center">
                                                         <TextBlock.Style>
@@ -782,14 +784,19 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <Button Content="+"
-                                        Width="40"
+                                <Button Width="40"
                                         Height="36"
                                         Margin="8,0,0,0"
-                                        FontSize="18"
+                                        FontSize="20"
                                         VerticalAlignment="Center"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        Padding="0"
                                         ToolTip="Добавить вкладку"
                                         Click="AddWorkspace_Click">
+                                    <Button.Content>
+                                        <TextBlock Text="+" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Button.Content>
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
