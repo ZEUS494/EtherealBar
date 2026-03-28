@@ -69,6 +69,8 @@ namespace EtherealBar
                 _selectedWorkspace = value;
                 Buttons = value.Buttons;
                 OnPropertyChanged(nameof(SelectedWorkspace));
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
 
                 if (_isPanelVisible)
                 {
@@ -98,13 +100,13 @@ namespace EtherealBar
 
         private const double BaseTileHeight = 373;
         private const double MinTileHeight = 120;
+        private const double MinTileHeightVerticalDock = 200;
         private const double TileVerticalPadding = 40;
         private const double MinWidgetHeightInEditMode = 320;
         private const double OverlayOutsideOffset = 40;
         private const double OverlayGap = 8;
         private const double VerticalDockOverlayWidth = 260;
         private const double VerticalDockPanelSidePadding = 16;
-        private const double VerticalDockPanelMinWidth = 240;
         private const double VerticalDockHoverWidthHeadroom = 56;
 
         private double _widgetHeight = 400;
@@ -126,6 +128,7 @@ namespace EtherealBar
         private readonly HashSet<WorkspaceConfig> _workspaceHooks = new HashSet<WorkspaceConfig>();
         private readonly Dictionary<WorkspaceConfig, int> _workspaceLastCounts = new Dictionary<WorkspaceConfig, int>();
         private bool _isLoadingSettings;
+        private readonly HashSet<ButtonConfig> _subscribedButtons = new HashSet<ButtonConfig>();
 
         public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
 
@@ -220,12 +223,28 @@ namespace EtherealBar
         // Bottom/Top: we keep a constant tile height (cross-axis is vertical).
         // Left/Right: we keep a constant tile width (cross-axis is horizontal), but use the old TileWidth
         // so vertical cards don't become gigantic.
-        public double TileMinor => IsVerticalDock ? TileWidth : TileHeight;
+        public double TileMinor => TileHeight;
+
+        private double WorkspaceMaxAspect
+        {
+            get
+            {
+                try
+                {
+                    if (Buttons.Count == 0) return 16d / 9d;
+                    double max = 0.01;
+                    foreach (var b in Buttons)
+                        max = Math.Max(max, b.AspectRatio);
+                    return Math.Clamp(max, 9d / 16d, 16d / 9d);
+                }
+                catch { return 16d / 9d; }
+            }
+        }
 
         public double PanelHeight => IsVerticalDock ? SystemParameters.WorkArea.Height : WidgetHeight;
         public double PanelWidth =>
             IsVerticalDock
-                ? Math.Max(VerticalDockPanelMinWidth, TileMinor + (VerticalDockPanelSidePadding * 2) + VerticalDockHoverWidthHeadroom)
+                ? (TileHeight * WorkspaceMaxAspect) + (VerticalDockPanelSidePadding * 2) + VerticalDockHoverWidthHeadroom
                 : SystemParameters.PrimaryScreenWidth;
 
         public System.Windows.Controls.Orientation WorkspaceItemsOrientation =>
@@ -234,7 +253,7 @@ namespace EtherealBar
         public System.Windows.Controls.Orientation WorkspaceTabsOrientation =>
             IsVerticalDock ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal;
 
-        public double AddTileButtonWidth => IsVerticalDock ? TileMinor : 60;
+        public double AddTileButtonWidth => IsVerticalDock ? (TileHeight * WorkspaceMaxAspect) : 60;
         public double AddTileButtonHeight => IsVerticalDock ? 60 : TileMinor;
 
         public double WidgetHeight
@@ -276,7 +295,8 @@ namespace EtherealBar
             get
             {
                 double availableHeight = WidgetHeight - TileVerticalPadding;
-                return Math.Max(MinTileHeight, availableHeight);
+                double min = IsVerticalDock ? MinTileHeightVerticalDock : MinTileHeight;
+                return Math.Max(min, availableHeight);
             }
         }
         public double HiddenOffset => _hiddenOffset;
@@ -300,6 +320,7 @@ namespace EtherealBar
 
             InitNotifyIcon();
             LoadSettings();
+            RebuildButtonSubscriptions();
             SetAutostart(true);
             this.Visibility = Visibility.Hidden;
         }
@@ -1222,7 +1243,13 @@ namespace EtherealBar
 
             _workspaceHooks.Add(ws);
             _workspaceLastCounts[ws] = ws.Buttons.Count;
-            ws.Buttons.CollectionChanged += (_, __) => OnWorkspaceButtonsChanged(ws);
+            ws.Buttons.CollectionChanged += (_, __) =>
+            {
+                OnWorkspaceButtonsChanged(ws);
+                RebuildButtonSubscriptions();
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
+            };
         }
 
         private void OnWorkspaceButtonsChanged(WorkspaceConfig ws)
@@ -1240,6 +1267,12 @@ namespace EtherealBar
                 {
                     PruneEmptyWorkspaces();
                 }), System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            if (ReferenceEquals(ws, SelectedWorkspace))
+            {
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
             }
         }
 
@@ -1267,6 +1300,32 @@ namespace EtherealBar
             }
 
             SaveSettings();
+        }
+
+        private void RebuildButtonSubscriptions()
+        {
+            foreach (var btn in _subscribedButtons)
+            {
+                try { btn.PropertyChanged -= ButtonConfig_PropertyChanged; } catch { }
+            }
+            _subscribedButtons.Clear();
+
+            foreach (var btn in Workspaces.SelectMany(w => w.Buttons))
+            {
+                if (_subscribedButtons.Add(btn))
+                {
+                    btn.PropertyChanged += ButtonConfig_PropertyChanged;
+                }
+            }
+        }
+
+        private void ButtonConfig_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ButtonConfig.AspectRatio))
+            {
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
+            }
         }
 
         private static bool ShouldCollapseDefaultWorkspacesToSinglePrograms(List<WorkspaceSettings> workspaces)
