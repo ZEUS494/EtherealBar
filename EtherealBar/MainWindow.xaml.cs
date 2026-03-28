@@ -326,18 +326,32 @@ namespace EtherealBar
                 PanelDock == PanelDockPosition.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
             // Tabs + top-right buttons sit "above" the panel when docked to bottom.
-            // When docked to top, keep them inside the window (negative margins would go off-screen).
+            // When docked to top, place them below the panel (using the window extra height).
             if (WorkspaceTabsScrollViewer != null)
             {
-                WorkspaceTabsScrollViewer.Margin = PanelDock == PanelDockPosition.Top
-                    ? new Thickness(12, 12, 160, 0)
-                    : new Thickness(12, -40, 160, 0);
+                if (PanelDock == PanelDockPosition.Top)
+                {
+                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Bottom;
+                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, -40);
+                }
+                else
+                {
+                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
+                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, -40, 160, 0);
+                }
             }
             if (TopRightButtonsPanel != null)
             {
-                TopRightButtonsPanel.Margin = PanelDock == PanelDockPosition.Top
-                    ? new Thickness(12, 12, 12, 0)
-                    : new Thickness(12, -40, 12, 0);
+                if (PanelDock == PanelDockPosition.Top)
+                {
+                    TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Bottom;
+                    TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, -40);
+                }
+                else
+                {
+                    TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
+                    TopRightButtonsPanel.Margin = new Thickness(12, -40, 12, 0);
+                }
             }
 
             if (!_isPanelVisible)
