@@ -20,6 +20,7 @@
         <local:MediaOffsetConverter x:Key="MediaOffsetConverter"/>
         <local:MediaDimensionConverter x:Key="MediaDimensionConverter"/>
         <local:ReferenceEqualsConverter x:Key="ReferenceEqualsConverter"/>
+        <local:AccentOpacityBrushConverter x:Key="AccentOpacityBrushConverter"/>
 
         <Style x:Key="EditControlStyle" TargetType="FrameworkElement">
             <Setter Property="Opacity" Value="0"/>
@@ -114,10 +115,6 @@
             <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2CFFFFFF"/>
-                    <Setter Property="BorderBrush" Value="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                </Trigger>
                 <DataTrigger Value="True">
                     <DataTrigger.Binding>
                         <MultiBinding Converter="{StaticResource ReferenceEqualsConverter}">
@@ -129,6 +126,18 @@
                     <!-- Border accent should be hover-only; keep selected border neutral. -->
                     <Setter Property="BorderBrush" Value="#28FFFFFF"/>
                 </DataTrigger>
+                <!-- Hover should apply even on the selected tab. Put it after the selected trigger so it wins. -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <MultiBinding Converter="{StaticResource AccentOpacityBrushConverter}">
+                                <Binding RelativeSource="{RelativeSource AncestorType=Window}" Path="GlobalBorderBrush"/>
+                                <Binding Source="0.18"/>
+                            </MultiBinding>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.5"/>
                 </Trigger>
