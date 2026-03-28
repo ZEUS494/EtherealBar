@@ -708,6 +708,20 @@ namespace EtherealBar
             }
         }
 
+        private void WorkspaceTab_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Border border) return;
+
+            // Don't switch workspace when clicking on action buttons inside the tab.
+            if (FindAncestor<System.Windows.Controls.Button>(e.OriginalSource as DependencyObject, border) != null)
+                return;
+
+            if (border.Tag is WorkspaceConfig ws)
+            {
+                SelectedWorkspace = ws;
+            }
+        }
+
         private void Tile_Click(object sender, RoutedEventArgs e)
         {
             if (!IsEditMode && sender is Button b && b.DataContext is ButtonConfig c)
