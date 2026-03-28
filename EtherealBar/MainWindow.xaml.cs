@@ -103,6 +103,8 @@ namespace EtherealBar
         private const double OverlayOutsideOffset = 40;
         private const double OverlayGap = 8;
         private const double VerticalDockOverlayWidth = 260;
+        private const double VerticalDockPanelSidePadding = 16;
+        private const double VerticalDockPanelMinWidth = 240;
 
         private double _widgetHeight = 400;
         private double _panelBackgroundOpacity = 0.82;
@@ -220,7 +222,10 @@ namespace EtherealBar
         public double TileMinor => IsVerticalDock ? TileWidth : TileHeight;
 
         public double PanelHeight => IsVerticalDock ? SystemParameters.WorkArea.Height : WidgetHeight;
-        public double PanelWidth => IsVerticalDock ? WidgetHeight : SystemParameters.PrimaryScreenWidth;
+        public double PanelWidth =>
+            IsVerticalDock
+                ? Math.Max(VerticalDockPanelMinWidth, TileMinor + (VerticalDockPanelSidePadding * 2))
+                : SystemParameters.PrimaryScreenWidth;
 
         public System.Windows.Controls.Orientation WorkspaceItemsOrientation =>
             IsVerticalDock ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal;

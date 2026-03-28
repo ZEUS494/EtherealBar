@@ -116,6 +116,9 @@
             <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
+                <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Margin" Value="0,0,0,10"/>
+                </DataTrigger>
                 <DataTrigger Value="True">
                     <DataTrigger.Binding>
                         <MultiBinding Converter="{StaticResource ReferenceEqualsConverter}">
