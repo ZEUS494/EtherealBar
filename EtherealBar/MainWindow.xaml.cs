@@ -109,6 +109,7 @@ namespace EtherealBar
         private const double VerticalDockOverlayWidth = 260;
         private const double VerticalDockPanelSidePadding = 16;
         private const double VerticalDockHoverWidthHeadroom = 56;
+        private const double DefaultVerticalDockWidthAspect = 16d / 9d;
 
         private double _widgetHeight = 400;
         private double _panelBackgroundOpacity = 0.82;
@@ -227,26 +228,12 @@ namespace EtherealBar
         // so vertical cards don't become gigantic.
         public double TileMinor => TileHeight;
 
-        private double WorkspaceMaxAspect
-        {
-            get
-            {
-                try
-                {
-                    if (Buttons.Count == 0) return 16d / 9d;
-                    double max = 0.01;
-                    foreach (var b in Buttons)
-                        max = Math.Max(max, b.AspectRatio);
-                    return Math.Clamp(max, 9d / 16d, 16d / 9d);
-                }
-                catch { return 16d / 9d; }
-            }
-        }
+        private double VerticalDockTileWidth => TileHeight * DefaultVerticalDockWidthAspect;
 
         public double PanelHeight => IsVerticalDock ? SystemParameters.WorkArea.Height : WidgetHeight;
         public double PanelWidth =>
             IsVerticalDock
-                ? (TileHeight * WorkspaceMaxAspect) + (VerticalDockPanelSidePadding * 2) + VerticalDockHoverWidthHeadroom
+                ? VerticalDockTileWidth + (VerticalDockPanelSidePadding * 2) + VerticalDockHoverWidthHeadroom
                 : SystemParameters.PrimaryScreenWidth;
 
         public System.Windows.Controls.Orientation WorkspaceItemsOrientation =>
@@ -255,7 +242,7 @@ namespace EtherealBar
         public System.Windows.Controls.Orientation WorkspaceTabsOrientation =>
             IsVerticalDock ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal;
 
-        public double AddTileButtonWidth => IsVerticalDock ? (TileHeight * WorkspaceMaxAspect) : 60;
+        public double AddTileButtonWidth => IsVerticalDock ? VerticalDockTileWidth : 60;
         public double AddTileButtonHeight => IsVerticalDock ? 60 : TileMinor;
 
         public double WidgetHeight
@@ -1693,6 +1680,7 @@ namespace EtherealBar
         private bool _isDragging;
         private bool _isDropTarget;
         private double _aspectRatio = MinAspect;
+        private double _verticalHeightFactor = 9d / 16d;
         private double _mediaScale = 1.0;
         private double _mediaOffsetX;
         private double _mediaOffsetY;
@@ -1732,6 +1720,23 @@ namespace EtherealBar
                 _mediaOffsetX = 0;
                 _mediaOffsetY = 0;
                 OnPropertyChanged(nameof(AspectRatio));
+                OnPropertyChanged(nameof(MediaOffsetX));
+                OnPropertyChanged(nameof(MediaOffsetY));
+            }
+        }
+
+        // Used only for Left/Right dock: fixed tile width (16:9 baseline), slider changes height via this factor (height = width * factor).
+        public double VerticalHeightFactor
+        {
+            get => _verticalHeightFactor;
+            set
+            {
+                double clamped = Math.Clamp(value, MinAspect, MaxAspect);
+                if (Math.Abs(_verticalHeightFactor - clamped) < 0.0001) return;
+                _verticalHeightFactor = clamped;
+                _mediaOffsetX = 0;
+                _mediaOffsetY = 0;
+                OnPropertyChanged(nameof(VerticalHeightFactor));
                 OnPropertyChanged(nameof(MediaOffsetX));
                 OnPropertyChanged(nameof(MediaOffsetY));
             }

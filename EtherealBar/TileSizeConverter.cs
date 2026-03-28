@@ -6,24 +6,33 @@ namespace EtherealBar
 {
     public sealed class TileSizeConverter : IMultiValueConverter
     {
+        private const double DefaultVerticalDockWidthAspect = 16d / 9d;
+
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values == null || values.Length < 3)
+            // values: [0]=IsVerticalDock, [1]=TileHeight, [2]=HorizontalAspectRatio, [3]=VerticalHeightFactor
+            if (values == null || values.Length < 4)
                 return 0d;
 
-            // values[0] is IsVerticalDock (kept for XAML compatibility)
-            double minor = values[1] is double d ? d : 0d; // minor here is always tile height
-            double aspect = values[2] is double a ? a : 1d;
-            aspect = Math.Max(0.01, aspect);
+            bool isVerticalDock = values[0] is bool b && b;
+            double tileHeight = values[1] is double d ? d : 0d;
+            double horizontalAspect = values[2] is double ha ? ha : 1d;
+            double verticalHeightFactor = values[3] is double vh ? vh : (9d / 16d);
+
+            tileHeight = Math.Max(1, tileHeight);
+            horizontalAspect = Math.Max(0.01, horizontalAspect);
+            verticalHeightFactor = Math.Clamp(verticalHeightFactor, 9d / 16d, 16d / 9d);
+
+            double fixedVerticalWidth = tileHeight * DefaultVerticalDockWidthAspect;
 
             string dim = (parameter as string) ?? string.Empty;
             if (string.Equals(dim, "Width", StringComparison.OrdinalIgnoreCase))
             {
-                return minor * aspect;
+                return isVerticalDock ? fixedVerticalWidth : tileHeight * horizontalAspect;
             }
             if (string.Equals(dim, "Height", StringComparison.OrdinalIgnoreCase))
             {
-                return minor;
+                return isVerticalDock ? (fixedVerticalWidth * verticalHeightFactor) : tileHeight;
             }
 
             return 0d;
