@@ -648,7 +648,7 @@
                                       HorizontalAlignment="Left"
                                       PanningMode="HorizontalOnly">
                             <StackPanel Orientation="Horizontal">
-                                <ItemsControl ItemsSource="{Binding Workspaces}">
+                                <ItemsControl x:Name="WorkspacesTabsItems" ItemsSource="{Binding Workspaces}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Horizontal"/>
@@ -656,21 +656,97 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Content="{Binding Name}"
-                                                    Tag="{Binding}"
+                                            <Button Tag="{Binding}"
                                                     Style="{StaticResource WorkspaceTabButtonStyle}"
-                                                    Click="WorkspaceTab_Click"
-                                                    ContextMenuOpening="WorkspaceTab_ContextMenuOpening">
-                                                <Button.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="Переименовать"
-                                                                  Click="WorkspaceRename_Click"
-                                                                  Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                        <MenuItem Header="Удалить"
-                                                                  Click="WorkspaceDelete_Click"
-                                                                  Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
-                                                    </ContextMenu>
-                                                </Button.ContextMenu>
+                                                    Click="WorkspaceTab_Click">
+                                                <Grid>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               VerticalAlignment="Center"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0,0,16,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+
+                                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                                             VerticalAlignment="Center"
+                                                             HorizontalAlignment="Center"
+                                                             Margin="0,0,16,0"
+                                                             MinWidth="90"
+                                                             MaxWidth="170"
+                                                             MaxLength="24"
+                                                             Background="Transparent"
+                                                             Foreground="White"
+                                                             BorderThickness="0"
+                                                             Padding="0"
+                                                             TextAlignment="Center"
+                                                             VerticalContentAlignment="Center"
+                                                             GotFocus="WorkspaceName_GotFocus"
+                                                             LostFocus="WorkspaceName_LostFocus"
+                                                             PreviewKeyDown="WorkspaceName_PreviewKeyDown">
+                                                        <TextBox.Style>
+                                                            <Style TargetType="TextBox">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBox.Style>
+                                                    </TextBox>
+
+                                                    <Button Content="✕"
+                                                            Width="18"
+                                                            Height="18"
+                                                            FontSize="11"
+                                                            Padding="0"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Top"
+                                                            Margin="0,-2,-2,0"
+                                                            Tag="{Binding}"
+                                                            Background="#AA7A0000"
+                                                            Foreground="White"
+                                                            BorderBrush="Transparent"
+                                                            Cursor="Hand"
+                                                            Click="WorkspaceClose_Click"
+                                                            PreviewMouseLeftButtonDown="WorkspaceClose_PreviewMouseLeftButtonDown">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border x:Name="b"
+                                                                                    Background="{TemplateBinding Background}"
+                                                                                    CornerRadius="9">
+                                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                            <ControlTemplate.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter TargetName="b" Property="Background" Value="#CCB00020"/>
+                                                                                </Trigger>
+                                                                            </ControlTemplate.Triggers>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CanDeleteWorkspaces, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </Grid>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

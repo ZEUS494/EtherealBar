@@ -121,6 +121,7 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(IsEditMode));
                 OnPropertyChanged(nameof(MinWidgetHeight));
                 OnPropertyChanged(nameof(CanAddWorkspace));
+                OnPropertyChanged(nameof(CanDeleteWorkspaces));
 
                 if (_isEditMode && WidgetHeight < MinWidgetHeightInEditMode)
                 {
@@ -130,6 +131,7 @@ namespace EtherealBar
         }
 
         public bool CanAddWorkspace => IsEditMode && Workspaces.Count < MaxWorkspaces;
+        public bool CanDeleteWorkspaces => IsEditMode && Workspaces.Count > 1;
         public Brush GlobalBorderBrush { get => _globalBorderBrush; set { _globalBorderBrush = value; OnPropertyChanged(nameof(GlobalBorderBrush)); } }
         public Color PanelBackgroundColor
         {
@@ -187,7 +189,11 @@ namespace EtherealBar
         {
             InitializeComponent();
             this.DataContext = this;
-            Workspaces.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CanAddWorkspace));
+            Workspaces.CollectionChanged += (_, _) =>
+            {
+                OnPropertyChanged(nameof(CanAddWorkspace));
+                OnPropertyChanged(nameof(CanDeleteWorkspaces));
+            };
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
             Application.Current.Exit += OnAppExit;
             Application.Current.SessionEnding += App_SessionEnding;
@@ -546,12 +552,27 @@ namespace EtherealBar
                         Workspaces.Clear();
                         if (s.Workspaces != null && s.Workspaces.Count > 0)
                         {
-                            foreach (var ws in s.Workspaces.Take(MaxWorkspaces))
+                            // Миграция: если в сохранённых настройках лежит "дефолтный набор" вкладок
+                            // (Игры/Программы/Документы/Файлы) и кроме "Программы" они пустые,
+                            // то сворачиваем всё в одну вкладку "Программы".
+                            if (ShouldCollapseDefaultWorkspacesToSinglePrograms(s.Workspaces))
                             {
-                                var buttons = ws.Buttons != null
-                                    ? new ObservableCollection<ButtonConfig>(ws.Buttons)
+                                var programs = s.Workspaces.FirstOrDefault(w =>
+                                    string.Equals(w.Name, "Программы", StringComparison.OrdinalIgnoreCase));
+                                var buttons = programs?.Buttons != null
+                                    ? new ObservableCollection<ButtonConfig>(programs.Buttons)
                                     : new ObservableCollection<ButtonConfig>();
-                                Workspaces.Add(new WorkspaceConfig(ws.Name ?? "Основное", buttons));
+                                Workspaces.Add(new WorkspaceConfig("Программы", buttons));
+                            }
+                            else
+                            {
+                                foreach (var ws in s.Workspaces.Take(MaxWorkspaces))
+                                {
+                                    var buttons = ws.Buttons != null
+                                        ? new ObservableCollection<ButtonConfig>(ws.Buttons)
+                                        : new ObservableCollection<ButtonConfig>();
+                                    Workspaces.Add(new WorkspaceConfig(ws.Name ?? "Программы", buttons));
+                                }
                             }
                         }
                         else
@@ -761,43 +782,26 @@ namespace EtherealBar
             if (!IsEditMode) return;
             if (Workspaces.Count >= MaxWorkspaces) return;
 
-            string proposed = $"Вкладка {Workspaces.Count + 1}";
-            string? name = TextPromptDialog.Show(this, "Новая вкладка", "Введите название вкладки:", proposed);
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            name = MakeUniqueWorkspaceName(name, null);
+            string name = MakeUniqueWorkspaceName($"Вкладка {Workspaces.Count + 1}", null);
             var ws = new WorkspaceConfig(name, new ObservableCollection<ButtonConfig>());
             Workspaces.Add(ws);
             SelectedWorkspace = ws;
             SaveSettings();
+
+            Dispatcher.BeginInvoke(new Action(() => FocusWorkspaceNameEditor(ws)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        private void WorkspaceTab_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        private void WorkspaceClose_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (!IsEditMode)
-            {
-                e.Handled = true;
-            }
+            // чтобы клик по кресту не выбирал вкладку
+            e.Handled = true;
         }
 
-        private void WorkspaceRename_Click(object sender, RoutedEventArgs e)
-        {
-            if (!IsEditMode) return;
-            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not WorkspaceConfig ws) return;
-
-            string? name = TextPromptDialog.Show(this, "Переименовать вкладку", "Введите новое название:", ws.Name);
-            if (string.IsNullOrWhiteSpace(name)) return;
-
-            ws.Name = MakeUniqueWorkspaceName(name, ws);
-            OnPropertyChanged(nameof(SelectedWorkspace)); // keep bindings fresh
-            SaveSettings();
-        }
-
-        private void WorkspaceDelete_Click(object sender, RoutedEventArgs e)
+        private void WorkspaceClose_Click(object sender, RoutedEventArgs e)
         {
             if (!IsEditMode) return;
-            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not WorkspaceConfig ws) return;
             if (Workspaces.Count <= 1) return;
+            if (sender is not Button b || b.Tag is not WorkspaceConfig ws) return;
 
             int index = Workspaces.IndexOf(ws);
             if (index < 0) return;
@@ -805,11 +809,55 @@ namespace EtherealBar
             bool wasSelected = ReferenceEquals(SelectedWorkspace, ws);
             Workspaces.Remove(ws);
 
-            if (wasSelected)
+            if (wasSelected && Workspaces.Count > 0)
             {
                 int nextIndex = Math.Clamp(index, 0, Workspaces.Count - 1);
                 SelectedWorkspace = Workspaces[nextIndex];
             }
+
+            SaveSettings();
+        }
+
+        private void WorkspaceName_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox tb)
+            {
+                tb.Tag = tb.Text;
+            }
+        }
+
+        private void WorkspaceName_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.TextBox tb) return;
+
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                if (tb.Tag is string original)
+                {
+                    tb.Text = original;
+                }
+                MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                e.Handled = true;
+            }
+        }
+
+        private void WorkspaceName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.TextBox tb) return;
+            if (tb.DataContext is not WorkspaceConfig ws) return;
+
+            string proposed = (ws.Name ?? string.Empty).Trim();
+            if (proposed.Length == 0)
+                proposed = "Программы";
+
+            string unique = MakeUniqueWorkspaceName(proposed, ws);
+            if (!string.Equals(ws.Name, unique, StringComparison.Ordinal))
+                ws.Name = unique;
 
             SaveSettings();
         }
@@ -836,6 +884,50 @@ namespace EtherealBar
 
             // Fallback: timestamp suffix
             return $"{baseName} ({DateTime.Now:HHmmss})";
+        }
+
+        private void FocusWorkspaceNameEditor(WorkspaceConfig ws)
+        {
+            if (!IsEditMode) return;
+
+            var container = WorkspacesTabsItems?.ItemContainerGenerator.ContainerFromItem(ws) as FrameworkElement;
+            if (container == null) return;
+
+            var tb = FindVisualChild<System.Windows.Controls.TextBox>(container);
+            if (tb == null) return;
+
+            tb.Focus();
+            tb.SelectAll();
+        }
+
+        private static bool ShouldCollapseDefaultWorkspacesToSinglePrograms(List<WorkspaceSettings> workspaces)
+        {
+            if (workspaces.Count < 2)
+                return false;
+
+            bool hasOnlyDefaultNames = workspaces.All(ws =>
+            {
+                string n = (ws.Name ?? string.Empty).Trim();
+                return string.Equals(n, "Игры", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(n, "Программы", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(n, "Документы", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(n, "Файлы", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(n, "Основное", StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (!hasOnlyDefaultNames)
+                return false;
+
+            bool othersEmpty = workspaces.All(ws =>
+            {
+                string n = (ws.Name ?? string.Empty).Trim();
+                if (string.Equals(n, "Программы", StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                return ws.Buttons == null || ws.Buttons.Count == 0;
+            });
+
+            return othersEmpty;
         }
 
         private void Tile_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
