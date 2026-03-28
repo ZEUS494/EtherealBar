@@ -254,6 +254,8 @@
 
         <Style x:Key="TileButtonStyle" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
+            <EventSetter Event="MouseEnter" Handler="Tile_HoverEnter"/>
+            <EventSetter Event="MouseLeave" Handler="Tile_HoverLeave"/>
             <Setter Property="Width">
                 <Setter.Value>
                     <MultiBinding Converter="{StaticResource TileSizeConverter}" ConverterParameter="Width">
@@ -521,6 +523,8 @@
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
                                     <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
+                                    <!-- In vertical dock we show hover scale via overlay (otherwise ScrollViewer clips). -->
+                                    <Condition Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
                                 </MultiDataTrigger.Conditions>
                                 <MultiDataTrigger.Setters>
                                     <Setter TargetName="mainBorder" Property="BorderBrush" Value="{Binding GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -555,7 +559,7 @@
     </Window.Resources>
 
     <Grid VerticalAlignment="Stretch" Background="Transparent">
-        <Grid x:Name="FullPanelContainer" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+        <Grid x:Name="FullPanelContainer" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" ClipToBounds="False">
             <Grid.RenderTransform>
                 <TranslateTransform x:Name="PanelTransform" X="0" Y="450"/>
             </Grid.RenderTransform>
@@ -868,6 +872,12 @@
                         Margin="0"
                         Click="Close_Click"/>
             </StackPanel>
+
+            <!-- Overlay layer for hover-scaled tiles in vertical dock (prevents ScrollViewer clipping). -->
+            <Canvas x:Name="HoverOverlayCanvas"
+                    IsHitTestVisible="False"
+                    Panel.ZIndex="999"
+                    ClipToBounds="False"/>
         </Grid>
     </Grid>
 </Window>

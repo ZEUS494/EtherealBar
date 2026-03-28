@@ -66,6 +66,8 @@ namespace EtherealBar
                 if (_isTileDragActive)
                     FinishTileDrag();
 
+                HideHoverOverlay();
+
                 _selectedWorkspace = value;
                 Buttons = value.Buttons;
                 OnPropertyChanged(nameof(SelectedWorkspace));
@@ -125,6 +127,9 @@ namespace EtherealBar
         private readonly HashSet<WorkspaceConfig> _workspaceHooks = new HashSet<WorkspaceConfig>();
         private readonly Dictionary<WorkspaceConfig, int> _workspaceLastCounts = new Dictionary<WorkspaceConfig, int>();
         private bool _isLoadingSettings;
+
+        private System.Windows.Controls.Button? _hoverOverlaySource;
+        private Border? _hoverOverlayElement;
 
         public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
 
@@ -598,6 +603,7 @@ namespace EtherealBar
             }
             else
             {
+                HideHoverOverlay();
                 if (_settingsWindow != null)
                 {
                     try { _settingsWindow.Close(); } catch { }
@@ -753,10 +759,13 @@ namespace EtherealBar
                 _currentOffset += (_targetOffset - _currentOffset) * 0.08;
                 ScrollToOffset(_currentOffset);
             }
+
+            UpdateHoverOverlayPosition();
         }
 
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
+            HideHoverOverlay();
             double extent = IsVerticalDock ? MainScrollViewer.ScrollableHeight : MainScrollViewer.ScrollableWidth;
             _targetOffset = Math.Max(0, Math.Min(extent, _targetOffset - (e.Delta / 120.0) * 250));
             e.Handled = true;
@@ -768,6 +777,114 @@ namespace EtherealBar
                 MainScrollViewer.ScrollToVerticalOffset(offset);
             else
                 MainScrollViewer.ScrollToHorizontalOffset(offset);
+        }
+
+        private void Tile_HoverEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!IsVerticalDock) return;
+            if (IsEditMode) return;
+            if (_isTileDragActive) return;
+
+            if (sender is not System.Windows.Controls.Button btn) return;
+            if (btn.DataContext is not ButtonConfig cfg) return;
+            if (cfg.IsDragging) return;
+
+            ShowHoverOverlay(btn);
+        }
+
+        private void Tile_HoverLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && ReferenceEquals(btn, _hoverOverlaySource))
+            {
+                HideHoverOverlay();
+            }
+        }
+
+        private void ShowHoverOverlay(System.Windows.Controls.Button source)
+        {
+            if (HoverOverlayCanvas == null || FullPanelContainer == null) return;
+
+            if (ReferenceEquals(_hoverOverlaySource, source) && _hoverOverlayElement != null)
+            {
+                UpdateHoverOverlayPosition();
+                return;
+            }
+
+            HideHoverOverlay();
+
+            _hoverOverlaySource = source;
+
+            var brush = new VisualBrush(source)
+            {
+                Stretch = Stretch.Fill,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top
+            };
+
+            var overlay = new Border
+            {
+                Background = brush,
+                Width = Math.Max(1, source.ActualWidth),
+                Height = Math.Max(1, source.ActualHeight),
+                CornerRadius = new CornerRadius(20),
+                IsHitTestVisible = false,
+                RenderTransformOrigin = new System.Windows.Point(0.5, 0.5),
+                RenderTransform = new ScaleTransform(1.04, 1.04)
+            };
+
+            _hoverOverlayElement = overlay;
+            HoverOverlayCanvas.Children.Add(overlay);
+            Canvas.SetZIndex(overlay, 999);
+
+            UpdateHoverOverlayPosition();
+        }
+
+        private void UpdateHoverOverlayPosition()
+        {
+            if (_hoverOverlaySource == null || _hoverOverlayElement == null) return;
+            if (!_isPanelVisible) { HideHoverOverlay(); return; }
+            if (!IsVerticalDock) { HideHoverOverlay(); return; }
+
+            if (!IsElementInVisualTree(_hoverOverlaySource))
+            {
+                HideHoverOverlay();
+                return;
+            }
+
+            try
+            {
+                var p = _hoverOverlaySource.TransformToAncestor(FullPanelContainer).Transform(new System.Windows.Point(0, 0));
+                _hoverOverlayElement.Width = Math.Max(1, _hoverOverlaySource.ActualWidth);
+                _hoverOverlayElement.Height = Math.Max(1, _hoverOverlaySource.ActualHeight);
+                Canvas.SetLeft(_hoverOverlayElement, p.X);
+                Canvas.SetTop(_hoverOverlayElement, p.Y);
+            }
+            catch
+            {
+                HideHoverOverlay();
+            }
+        }
+
+        private static bool IsElementInVisualTree(DependencyObject element)
+        {
+            DependencyObject? current = element;
+            while (current != null)
+            {
+                if (current is Window) return true;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return false;
+        }
+
+        private void HideHoverOverlay()
+        {
+            if (_hoverOverlayElement != null)
+            {
+                try { HoverOverlayCanvas.Children.Remove(_hoverOverlayElement); } catch { }
+            }
+
+            _hoverOverlayElement = null;
+            _hoverOverlaySource = null;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
