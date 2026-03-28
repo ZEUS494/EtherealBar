@@ -254,8 +254,6 @@
 
         <Style x:Key="TileButtonStyle" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
-            <EventSetter Event="MouseEnter" Handler="Tile_HoverEnter"/>
-            <EventSetter Event="MouseLeave" Handler="Tile_HoverLeave"/>
             <Setter Property="Width">
                 <Setter.Value>
                     <MultiBinding Converter="{StaticResource TileSizeConverter}" ConverterParameter="Width">
@@ -523,8 +521,6 @@
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
                                     <Condition Binding="{Binding IsEditMode, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
-                                    <!-- In vertical dock we show hover scale via overlay (otherwise ScrollViewer clips). -->
-                                    <Condition Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
                                 </MultiDataTrigger.Conditions>
                                 <MultiDataTrigger.Setters>
                                     <Setter TargetName="mainBorder" Property="BorderBrush" Value="{Binding GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"/>
@@ -559,7 +555,7 @@
     </Window.Resources>
 
     <Grid VerticalAlignment="Stretch" Background="Transparent">
-        <Grid x:Name="FullPanelContainer" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" ClipToBounds="False">
+        <Grid x:Name="FullPanelContainer" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
             <Grid.RenderTransform>
                 <TranslateTransform x:Name="PanelTransform" X="0" Y="450"/>
             </Grid.RenderTransform>
@@ -588,12 +584,12 @@
                                     <!-- In vertical dock, tiles scale up on hover; add headroom so they don't get clipped at the scroll bounds. -->
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                            <Setter Property="Padding" Value="8,18,8,18"/>
+                                            <Setter Property="Padding" Value="18,26,18,26"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
-                            <Grid VerticalAlignment="Center" Margin="8,0,8,0" ClipToBounds="False">
+                            <Grid VerticalAlignment="Center" Margin="8,0,8,0">
                                 <ItemsControl ItemsSource="{Binding Workspaces}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -622,6 +618,16 @@
 
                                                 <StackPanel Orientation="{Binding DataContext.WorkspaceItemsOrientation, RelativeSource={RelativeSource AncestorType=Window}}"
                                                             VerticalAlignment="Center">
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="HorizontalAlignment" Value="Left"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding DataContext.IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
                                                     <ItemsControl ItemsSource="{Binding Buttons}"
                                                                   Loaded="WorkspaceMediaHost_Loaded"
                                                                   Unloaded="WorkspaceMediaHost_Unloaded">
@@ -872,12 +878,6 @@
                         Margin="0"
                         Click="Close_Click"/>
             </StackPanel>
-
-            <!-- Overlay layer for hover-scaled tiles in vertical dock (prevents ScrollViewer clipping). -->
-            <Canvas x:Name="HoverOverlayCanvas"
-                    IsHitTestVisible="False"
-                    Panel.ZIndex="999"
-                    ClipToBounds="False"/>
         </Grid>
     </Grid>
 </Window>
