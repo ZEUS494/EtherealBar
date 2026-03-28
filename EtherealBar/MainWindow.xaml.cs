@@ -133,7 +133,7 @@ namespace EtherealBar
         private readonly HashSet<ButtonConfig> _subscribedButtons = new HashSet<ButtonConfig>();
         private bool _layoutUpdatePending;
 
-        public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
+        public double MinWidgetHeight => IsVerticalDock ? 200 : (IsEditMode ? MinWidgetHeightInEditMode : 200);
 
         public bool IsEditMode
         {
@@ -147,7 +147,8 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(CanAddWorkspace));
                 OnPropertyChanged(nameof(CanDeleteWorkspaces));
 
-                if (_isEditMode && WidgetHeight < MinWidgetHeightInEditMode)
+                // In vertical dock, WidgetHeight acts as panel thickness (width), so don't force the edit-mode min.
+                if (_isEditMode && !IsVerticalDock && WidgetHeight < MinWidgetHeightInEditMode)
                 {
                     WidgetHeight = MinWidgetHeightInEditMode;
                 }

@@ -474,10 +474,11 @@
                                         <StackPanel Margin="0,4,0,0">
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel" BasedOn="{StaticResource EditControlStyle}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
                                                     <Style.Triggers>
+                                                        <!-- Hide the horizontal "format" slider when docked left/right. -->
                                                         <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                                             <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Opacity" Value="0"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -499,10 +500,11 @@
                                         <StackPanel Margin="0,4,0,0">
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel" BasedOn="{StaticResource EditControlStyle}">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        <!-- Hide the vertical height slider when docked top/bottom. -->
+                                                        <DataTrigger Binding="{Binding IsVerticalDock, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Opacity" Value="0"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
