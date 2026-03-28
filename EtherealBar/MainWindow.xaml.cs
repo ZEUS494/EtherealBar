@@ -98,6 +98,8 @@ namespace EtherealBar
         private const double MinTileHeight = 120;
         private const double TileVerticalPadding = 40;
         private const double MinWidgetHeightInEditMode = 320;
+        private const double OverlayOutsideOffset = 40;
+        private const double OverlayGap = 8;
 
         private double _widgetHeight = 400;
         private double _panelBackgroundOpacity = 0.82;
@@ -329,28 +331,30 @@ namespace EtherealBar
             // When docked to top, place them below the panel (using the window extra height).
             if (WorkspaceTabsScrollViewer != null)
             {
+                double offset = -(OverlayOutsideOffset + OverlayGap);
                 if (PanelDock == PanelDockPosition.Top)
                 {
                     WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Bottom;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, -40);
+                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, offset);
                 }
                 else
                 {
                     WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, -40, 160, 0);
+                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, offset, 160, 0);
                 }
             }
             if (TopRightButtonsPanel != null)
             {
+                double offset = -(OverlayOutsideOffset + OverlayGap);
                 if (PanelDock == PanelDockPosition.Top)
                 {
                     TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Bottom;
-                    TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, -40);
+                    TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, offset);
                 }
                 else
                 {
                     TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
-                    TopRightButtonsPanel.Margin = new Thickness(12, -40, 12, 0);
+                    TopRightButtonsPanel.Margin = new Thickness(12, offset, 12, 0);
                 }
             }
 
