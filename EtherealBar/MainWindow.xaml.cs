@@ -34,6 +34,12 @@ namespace EtherealBar
         private const int HOTKEY_ID = 9000;
         private const int MaxWorkspaces = 5;
 
+        public enum PanelDockPosition
+        {
+            Bottom = 0,
+            Top = 1
+        }
+
         private ObservableCollection<ButtonConfig> _buttons = new ObservableCollection<ButtonConfig>();
         public ObservableCollection<ButtonConfig> Buttons
         {
@@ -86,6 +92,7 @@ namespace EtherealBar
         private Color _panelBackgroundColor = Color.FromRgb(5, 5, 5);
         private Brush _panelBackgroundBrush = Brushes.Transparent;
         private bool _isExiting = false;
+        private PanelDockPosition _panelDock = PanelDockPosition.Bottom;
 
         private const double BaseTileHeight = 373;
         private const double MinTileHeight = 120;
@@ -148,6 +155,32 @@ namespace EtherealBar
             }
         }
         public Brush PanelBackgroundBrush { get => _panelBackgroundBrush; private set { _panelBackgroundBrush = value; OnPropertyChanged(nameof(PanelBackgroundBrush)); } }
+
+        public PanelDockPosition PanelDock
+        {
+            get => _panelDock;
+            set
+            {
+                if (_panelDock == value) return;
+                _panelDock = value;
+                OnPropertyChanged(nameof(PanelDock));
+                OnPropertyChanged(nameof(IsDockTop));
+                OnPropertyChanged(nameof(IsDockBottom));
+                UpdateLayoutMetrics();
+            }
+        }
+
+        public bool IsDockTop
+        {
+            get => PanelDock == PanelDockPosition.Top;
+            set { if (value) PanelDock = PanelDockPosition.Top; }
+        }
+
+        public bool IsDockBottom
+        {
+            get => PanelDock == PanelDockPosition.Bottom;
+            set { if (value) PanelDock = PanelDockPosition.Bottom; }
+        }
 
         public double WidgetHeight
         {
@@ -285,12 +318,37 @@ namespace EtherealBar
             OnPropertyChanged(nameof(HiddenOffset));
 
             this.Height = WidgetHeight + 100;
-            this.Top = SystemParameters.WorkArea.Bottom - this.Height;
+            this.Top = PanelDock == PanelDockPosition.Top
+                ? SystemParameters.WorkArea.Top
+                : SystemParameters.WorkArea.Bottom - this.Height;
+
+            FullPanelContainer.VerticalAlignment =
+                PanelDock == PanelDockPosition.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+
+            // Tabs + top-right buttons sit "above" the panel when docked to bottom.
+            // When docked to top, keep them inside the window (negative margins would go off-screen).
+            if (WorkspaceTabsScrollViewer != null)
+            {
+                WorkspaceTabsScrollViewer.Margin = PanelDock == PanelDockPosition.Top
+                    ? new Thickness(12, 12, 160, 0)
+                    : new Thickness(12, -40, 160, 0);
+            }
+            if (TopRightButtonsPanel != null)
+            {
+                TopRightButtonsPanel.Margin = PanelDock == PanelDockPosition.Top
+                    ? new Thickness(12, 12, 12, 0)
+                    : new Thickness(12, -40, 12, 0);
+            }
 
             if (!_isPanelVisible)
             {
-                PanelTransform.Y = HiddenOffset;
+                PanelTransform.Y = GetHiddenTranslateY();
             }
+        }
+
+        private double GetHiddenTranslateY()
+        {
+            return PanelDock == PanelDockPosition.Top ? -HiddenOffset : HiddenOffset;
         }
 
         private void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
@@ -343,7 +401,7 @@ namespace EtherealBar
         {
             if (_isInternalShutdown) return;
             _isPanelVisible = !_isPanelVisible;
-            double targetY = _isPanelVisible ? 0 : HiddenOffset;
+            double targetY = _isPanelVisible ? 0 : GetHiddenTranslateY();
             DoubleAnimation anim = new DoubleAnimation(targetY, TimeSpan.FromSeconds(0.4)) { EasingFunction = new QuarticEase { EasingMode = EasingMode.EaseOut } };
 
             if (_isPanelVisible)
@@ -552,6 +610,9 @@ namespace EtherealBar
                         }
                         PanelBackgroundOpacity = s.PanelBackgroundOpacity;
                         WidgetHeight = s.WidgetHeight;
+                        PanelDock = string.Equals(s.PanelDock, "Top", StringComparison.OrdinalIgnoreCase)
+                            ? PanelDockPosition.Top
+                            : PanelDockPosition.Bottom;
 
                         bool collapsedToSingle = false;
                         Workspaces.Clear();
@@ -667,6 +728,7 @@ namespace EtherealBar
                     PanelBackgroundColorHex = PanelBackgroundColor.ToString(),
                     WidgetHeight = WidgetHeight,
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
+                    PanelDock = PanelDock == PanelDockPosition.Top ? "Top" : "Bottom",
                     SelectedWorkspaceName = SelectedWorkspace?.Name,
                     Workspaces = Workspaces
                         .Select(w => new WorkspaceSettings
@@ -1293,6 +1355,7 @@ namespace EtherealBar
         public double WidgetHeight { get; set; } = 400;
         public double TileScale { get; set; } = 1.0;
         public double PanelBackgroundOpacity { get; set; } = 0.82;
+        public string PanelDock { get; set; } = "Bottom";
         public string? SelectedWorkspaceName { get; set; }
         public List<WorkspaceSettings>? Workspaces { get; set; }
         public List<ButtonConfig> Buttons { get; set; } = new List<ButtonConfig>();

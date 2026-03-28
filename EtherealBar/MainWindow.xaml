@@ -540,7 +540,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid VerticalAlignment="Bottom" Background="Transparent">
+    <Grid VerticalAlignment="Stretch" Background="Transparent">
         <StackPanel x:Name="FullPanelContainer" VerticalAlignment="Bottom">
             <StackPanel.RenderTransform>
                 <TranslateTransform x:Name="PanelTransform" Y="450"/>
@@ -639,6 +639,7 @@
                         <ScrollViewer HorizontalScrollBarVisibility="Hidden"
                                       VerticalScrollBarVisibility="Disabled"
                                       Margin="12,-40,160,0"
+                                      x:Name="WorkspaceTabsScrollViewer"
                                       Panel.ZIndex="20"
                                       VerticalAlignment="Top"
                                       HorizontalAlignment="Left"
@@ -824,6 +825,7 @@
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Top"
                                     Margin="12,-40,12,0"
+                                    x:Name="TopRightButtonsPanel"
                                     Panel.ZIndex="20">
                             <Button Content="✎"
                                     Style="{StaticResource IconButtonStyle}"

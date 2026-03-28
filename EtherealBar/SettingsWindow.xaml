@@ -298,6 +298,24 @@
                     </StackPanel>
 
                     <StackPanel Margin="0,14,0,0">
+                        <TextBlock Text="Положение панели" Foreground="White" Opacity="0.8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <RadioButton Content="Снизу"
+                                         Foreground="White"
+                                         Margin="0,0,18,0"
+                                         IsChecked="{Binding IsDockBottom, Mode=TwoWay}"/>
+                            <RadioButton Content="Сверху"
+                                         Foreground="White"
+                                         IsChecked="{Binding IsDockTop, Mode=TwoWay}"/>
+                        </StackPanel>
+                        <TextBlock Text="Панель будет выезжать сверху или снизу экрана."
+                                   Foreground="White"
+                                   Opacity="0.45"
+                                   FontSize="11"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,14,0,0">
                         <TextBlock Text="Акцентный цвет" Foreground="White" Opacity="0.8"/>
                         <ListBox x:Name="ColorPicker"
                                  Margin="0,8,0,0"
