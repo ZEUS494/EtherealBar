@@ -37,7 +37,9 @@ namespace EtherealBar
         public enum PanelDockPosition
         {
             Bottom = 0,
-            Top = 1
+            Top = 1,
+            Left = 2,
+            Right = 3
         }
 
         private ObservableCollection<ButtonConfig> _buttons = new ObservableCollection<ButtonConfig>();
@@ -73,7 +75,7 @@ namespace EtherealBar
                     PauseAllMedia();
                     _targetOffset = 0;
                     _currentOffset = 0;
-                    MainScrollViewer.ScrollToHorizontalOffset(0);
+                    ScrollToOffset(0);
 
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -100,6 +102,7 @@ namespace EtherealBar
         private const double MinWidgetHeightInEditMode = 320;
         private const double OverlayOutsideOffset = 40;
         private const double OverlayGap = 8;
+        private const double VerticalDockOverlayWidth = 260;
 
         private double _widgetHeight = 400;
         private double _panelBackgroundOpacity = 0.82;
@@ -168,6 +171,17 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(PanelDock));
                 OnPropertyChanged(nameof(IsDockTop));
                 OnPropertyChanged(nameof(IsDockBottom));
+                OnPropertyChanged(nameof(IsDockLeft));
+                OnPropertyChanged(nameof(IsDockRight));
+                OnPropertyChanged(nameof(IsVerticalDock));
+                OnPropertyChanged(nameof(IsHorizontalDock));
+                OnPropertyChanged(nameof(WorkspaceItemsOrientation));
+                OnPropertyChanged(nameof(WorkspaceTabsOrientation));
+                OnPropertyChanged(nameof(PanelHeight));
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(TileMinor));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
+                OnPropertyChanged(nameof(AddTileButtonHeight));
                 UpdateLayoutMetrics();
             }
         }
@@ -184,6 +198,36 @@ namespace EtherealBar
             set { if (value) PanelDock = PanelDockPosition.Bottom; }
         }
 
+        public bool IsDockLeft
+        {
+            get => PanelDock == PanelDockPosition.Left;
+            set { if (value) PanelDock = PanelDockPosition.Left; }
+        }
+
+        public bool IsDockRight
+        {
+            get => PanelDock == PanelDockPosition.Right;
+            set { if (value) PanelDock = PanelDockPosition.Right; }
+        }
+
+        public bool IsVerticalDock => PanelDock == PanelDockPosition.Left || PanelDock == PanelDockPosition.Right;
+        public bool IsHorizontalDock => !IsVerticalDock;
+
+        // "Minor" tile dimension: height for bottom/top dock, width for left/right dock.
+        public double TileMinor => TileHeight;
+
+        public double PanelHeight => IsVerticalDock ? SystemParameters.WorkArea.Height : WidgetHeight;
+        public double PanelWidth => IsVerticalDock ? WidgetHeight : SystemParameters.PrimaryScreenWidth;
+
+        public System.Windows.Controls.Orientation WorkspaceItemsOrientation =>
+            IsVerticalDock ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal;
+
+        public System.Windows.Controls.Orientation WorkspaceTabsOrientation =>
+            IsVerticalDock ? System.Windows.Controls.Orientation.Vertical : System.Windows.Controls.Orientation.Horizontal;
+
+        public double AddTileButtonWidth => IsVerticalDock ? TileMinor : 60;
+        public double AddTileButtonHeight => IsVerticalDock ? 60 : TileMinor;
+
         public double WidgetHeight
         {
             get => _widgetHeight;
@@ -195,6 +239,11 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(WidgetHeight));
                 OnPropertyChanged(nameof(TileWidth));
                 OnPropertyChanged(nameof(TileHeight));
+                OnPropertyChanged(nameof(TileMinor));
+                OnPropertyChanged(nameof(PanelHeight));
+                OnPropertyChanged(nameof(PanelWidth));
+                OnPropertyChanged(nameof(AddTileButtonWidth));
+                OnPropertyChanged(nameof(AddTileButtonHeight));
                 UpdateLayoutMetrics();
             }
         }
@@ -236,9 +285,6 @@ namespace EtherealBar
             Application.Current.Exit += OnAppExit;
             Application.Current.SessionEnding += App_SessionEnding;
             new WindowInteropHelper(this).EnsureHandle();
-
-            this.Width = SystemParameters.PrimaryScreenWidth;
-            this.Left = 0;
             MaxWidgetHeight = SystemParameters.WorkArea.Height / 2.0;
             UpdatePanelBackgroundBrush();
             UpdateLayoutMetrics();
@@ -316,57 +362,157 @@ namespace EtherealBar
 
         private void UpdateLayoutMetrics()
         {
-            _hiddenOffset = WidgetHeight + 50;
+            // Hidden translate should fully move the whole container out of view.
+            _hiddenOffset = IsVerticalDock
+                ? (PanelWidth + VerticalDockOverlayWidth + 50)
+                : (WidgetHeight + 120);
             OnPropertyChanged(nameof(HiddenOffset));
 
-            this.Height = WidgetHeight + 100;
-            this.Top = PanelDock == PanelDockPosition.Top
-                ? SystemParameters.WorkArea.Top
-                : SystemParameters.WorkArea.Bottom - this.Height;
-
-            FullPanelContainer.VerticalAlignment =
-                PanelDock == PanelDockPosition.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
-
-            // Tabs + top-right buttons sit "above" the panel when docked to bottom.
-            // When docked to top, place them below the panel (using the window extra height).
-            if (WorkspaceTabsScrollViewer != null)
+            if (IsVerticalDock)
             {
-                double offset = -(OverlayOutsideOffset + OverlayGap);
-                if (PanelDock == PanelDockPosition.Top)
+                this.Height = SystemParameters.WorkArea.Height;
+                this.Width = PanelWidth + VerticalDockOverlayWidth;
+                this.Top = SystemParameters.WorkArea.Top;
+                this.Left = PanelDock == PanelDockPosition.Left
+                    ? SystemParameters.WorkArea.Left
+                    : SystemParameters.WorkArea.Right - this.Width;
+
+                FullPanelContainer.VerticalAlignment = VerticalAlignment.Stretch;
+                FullPanelContainer.HorizontalAlignment =
+                    PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+
+                if (MainPanel != null)
                 {
-                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Bottom;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, offset);
+                    MainPanel.VerticalAlignment = VerticalAlignment.Stretch;
+                    MainPanel.HorizontalAlignment =
+                        PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
                 }
-                else
+
+                if (MainScrollViewer != null)
                 {
-                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, offset, 160, 0);
+                    MainScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+                    MainScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
                 }
             }
-            if (TopRightButtonsPanel != null)
+            else
             {
-                double offset = -(OverlayOutsideOffset + OverlayGap);
-                if (PanelDock == PanelDockPosition.Top)
+                this.Width = SystemParameters.PrimaryScreenWidth;
+                this.Left = 0;
+
+                this.Height = WidgetHeight + 100;
+                this.Top = PanelDock == PanelDockPosition.Top
+                    ? SystemParameters.WorkArea.Top
+                    : SystemParameters.WorkArea.Bottom - this.Height;
+
+                FullPanelContainer.VerticalAlignment =
+                    PanelDock == PanelDockPosition.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+                FullPanelContainer.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+
+                if (MainPanel != null)
                 {
-                    TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Bottom;
-                    TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, offset);
+                    MainPanel.VerticalAlignment = VerticalAlignment.Bottom;
+                    MainPanel.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+                }
+
+                if (MainScrollViewer != null)
+                {
+                    MainScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
+                    MainScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+                }
+            }
+
+            // Tabs + top-right buttons sit "outside" the panel. Direction depends on dock.
+            if (WorkspaceTabsScrollViewer != null)
+            {
+                if (IsVerticalDock)
+                {
+                    WorkspaceTabsScrollViewer.PanningMode = PanningMode.None;
+                    WorkspaceTabsScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+                    WorkspaceTabsScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+
+                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
+                    WorkspaceTabsScrollViewer.HorizontalAlignment =
+                        PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+
+                    double xOffset = PanelWidth + OverlayGap;
+                    if (PanelDock == PanelDockPosition.Left)
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(xOffset, 12, 12, 0);
+                    else
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(12, 12, xOffset, 0);
                 }
                 else
                 {
+                    WorkspaceTabsScrollViewer.PanningMode = PanningMode.HorizontalOnly;
+                    WorkspaceTabsScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
+                    WorkspaceTabsScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+
+                    double offset = -(OverlayOutsideOffset + OverlayGap);
+                    if (PanelDock == PanelDockPosition.Top)
+                    {
+                        WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Bottom;
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, offset);
+                    }
+                    else
+                    {
+                        WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
+                        WorkspaceTabsScrollViewer.Margin = new Thickness(12, offset, 160, 0);
+                    }
+
+                    WorkspaceTabsScrollViewer.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                }
+            }
+
+            if (TopRightButtonsPanel != null)
+            {
+                if (IsVerticalDock)
+                {
                     TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
-                    TopRightButtonsPanel.Margin = new Thickness(12, offset, 12, 0);
+                    TopRightButtonsPanel.HorizontalAlignment =
+                        PanelDock == PanelDockPosition.Left ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+                    TopRightButtonsPanel.Margin = new Thickness(12, 12, 12, 0);
+
+                    double xOffset = PanelWidth + OverlayGap;
+                    TopRightButtonsPanel.RenderTransform =
+                        PanelDock == PanelDockPosition.Left
+                            ? new TranslateTransform(xOffset, 0)
+                            : new TranslateTransform(-xOffset, 0);
+                }
+                else
+                {
+                    TopRightButtonsPanel.RenderTransform = null;
+
+                    double offset = -(OverlayOutsideOffset + OverlayGap);
+                    if (PanelDock == PanelDockPosition.Top)
+                    {
+                        TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Bottom;
+                        TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, offset);
+                    }
+                    else
+                    {
+                        TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
+                        TopRightButtonsPanel.Margin = new Thickness(12, offset, 12, 0);
+                    }
+
+                    TopRightButtonsPanel.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
                 }
             }
 
             if (!_isPanelVisible)
             {
-                PanelTransform.Y = GetHiddenTranslateY();
+                var hidden = GetHiddenTranslate();
+                PanelTransform.X = hidden.x;
+                PanelTransform.Y = hidden.y;
             }
         }
 
-        private double GetHiddenTranslateY()
+        private (double x, double y) GetHiddenTranslate()
         {
-            return PanelDock == PanelDockPosition.Top ? -HiddenOffset : HiddenOffset;
+            if (IsVerticalDock)
+            {
+                return PanelDock == PanelDockPosition.Left ? (-HiddenOffset, 0) : (HiddenOffset, 0);
+            }
+
+            return PanelDock == PanelDockPosition.Top ? (0, -HiddenOffset) : (0, HiddenOffset);
         }
 
         private void App_SessionEnding(object sender, SessionEndingCancelEventArgs e)
@@ -419,8 +565,10 @@ namespace EtherealBar
         {
             if (_isInternalShutdown) return;
             _isPanelVisible = !_isPanelVisible;
-            double targetY = _isPanelVisible ? 0 : GetHiddenTranslateY();
-            DoubleAnimation anim = new DoubleAnimation(targetY, TimeSpan.FromSeconds(0.4)) { EasingFunction = new QuarticEase { EasingMode = EasingMode.EaseOut } };
+            var hidden = GetHiddenTranslate();
+            bool slideX = IsVerticalDock;
+            double target = _isPanelVisible ? 0 : (slideX ? hidden.x : hidden.y);
+            DoubleAnimation anim = new DoubleAnimation(target, TimeSpan.FromSeconds(0.4)) { EasingFunction = new QuarticEase { EasingMode = EasingMode.EaseOut } };
 
             if (_isPanelVisible)
             {
@@ -432,7 +580,8 @@ namespace EtherealBar
 
                 ManageAllMedia(true);
                 CompositionTarget.Rendering += OnRenderFrame;
-                PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
+                if (slideX) PanelTransform.BeginAnimation(TranslateTransform.XProperty, anim);
+                else PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
 
                 var fadeIn = new DoubleAnimation(1, TimeSpan.FromSeconds(0.12)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
                 this.BeginAnimation(OpacityProperty, fadeIn);
@@ -462,7 +611,8 @@ namespace EtherealBar
                         SaveSettings();
                     }
                 };
-                PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
+                if (slideX) PanelTransform.BeginAnimation(TranslateTransform.XProperty, anim);
+                else PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
             }
         }
 
@@ -591,14 +741,23 @@ namespace EtherealBar
             if (Math.Abs(_currentOffset - _targetOffset) > 0.1)
             {
                 _currentOffset += (_targetOffset - _currentOffset) * 0.08;
-                MainScrollViewer.ScrollToHorizontalOffset(_currentOffset);
+                ScrollToOffset(_currentOffset);
             }
         }
 
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            _targetOffset = Math.Max(0, Math.Min(MainScrollViewer.ScrollableWidth, _targetOffset - (e.Delta / 120.0) * 250));
+            double extent = IsVerticalDock ? MainScrollViewer.ScrollableHeight : MainScrollViewer.ScrollableWidth;
+            _targetOffset = Math.Max(0, Math.Min(extent, _targetOffset - (e.Delta / 120.0) * 250));
             e.Handled = true;
+        }
+
+        private void ScrollToOffset(double offset)
+        {
+            if (IsVerticalDock)
+                MainScrollViewer.ScrollToVerticalOffset(offset);
+            else
+                MainScrollViewer.ScrollToHorizontalOffset(offset);
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -628,9 +787,15 @@ namespace EtherealBar
                         }
                         PanelBackgroundOpacity = s.PanelBackgroundOpacity;
                         WidgetHeight = s.WidgetHeight;
-                        PanelDock = string.Equals(s.PanelDock, "Top", StringComparison.OrdinalIgnoreCase)
-                            ? PanelDockPosition.Top
-                            : PanelDockPosition.Bottom;
+                        string dock = (s.PanelDock ?? string.Empty).Trim();
+                        if (string.Equals(dock, "Top", StringComparison.OrdinalIgnoreCase))
+                            PanelDock = PanelDockPosition.Top;
+                        else if (string.Equals(dock, "Left", StringComparison.OrdinalIgnoreCase))
+                            PanelDock = PanelDockPosition.Left;
+                        else if (string.Equals(dock, "Right", StringComparison.OrdinalIgnoreCase))
+                            PanelDock = PanelDockPosition.Right;
+                        else
+                            PanelDock = PanelDockPosition.Bottom;
 
                         bool collapsedToSingle = false;
                         Workspaces.Clear();
@@ -746,7 +911,13 @@ namespace EtherealBar
                     PanelBackgroundColorHex = PanelBackgroundColor.ToString(),
                     WidgetHeight = WidgetHeight,
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
-                    PanelDock = PanelDock == PanelDockPosition.Top ? "Top" : "Bottom",
+                    PanelDock = PanelDock switch
+                    {
+                        PanelDockPosition.Top => "Top",
+                        PanelDockPosition.Left => "Left",
+                        PanelDockPosition.Right => "Right",
+                        _ => "Bottom"
+                    },
                     SelectedWorkspaceName = SelectedWorkspace?.Name,
                     Workspaces = Workspaces
                         .Select(w => new WorkspaceSettings
