@@ -48,7 +48,7 @@ namespace EtherealBar
             Unloaded += (_, _) => Stop();
             IsVisibleChanged += (_, _) =>
             {
-                if (!IsVisible) Stop();
+                if (Visibility != Visibility.Visible) Stop();
                 else TryStart();
             };
         }
@@ -96,7 +96,7 @@ namespace EtherealBar
 
         private void TryStart()
         {
-            if (!IsLoaded || !IsVisible) return;
+            if (!IsLoaded || Visibility != Visibility.Visible) return;
             if (_frames == null || _delays == null || _frames.Count <= 1) return;
             if (_timer.IsEnabled) return;
 

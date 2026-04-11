@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -26,13 +26,15 @@ namespace EtherealBar
 
             if (sourceAspectRatio >= viewportAspect)
             {
-                double filledHeight = viewportHeight;
-                double filledWidth = filledHeight * sourceAspectRatio;
+                // Source is wider than viewport (or same)
+                double filledWidth = viewportWidth;
+                double filledHeight = filledWidth / sourceAspectRatio;
                 return widthRequested ? filledWidth : filledHeight;
             }
 
-            double baseWidth = viewportWidth;
-            double baseHeight = baseWidth / sourceAspectRatio;
+            // Source is taller than viewport
+            double baseHeight = viewportHeight;
+            double baseWidth = baseHeight * sourceAspectRatio;
             return widthRequested ? baseWidth : baseHeight;
         }
 

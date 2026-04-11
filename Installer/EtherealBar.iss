@@ -1,5 +1,5 @@
-﻿#define MyAppName "EtherealBar"
-#define MyAppVersion "1.2.0"
+#define MyAppName "EtherealBar"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "ZEUS494"
 #define MyAppExeName "EtherealBar.exe"
 

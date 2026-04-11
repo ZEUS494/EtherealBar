@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Drawing = System.Drawing;
 
@@ -16,6 +16,12 @@ namespace EtherealBar
         {
             string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
             return extension is ".gif";
+        }
+
+        public static bool IsPngFile(string? path)
+        {
+            string extension = Path.GetExtension(path ?? string.Empty).ToLowerInvariant();
+            return extension is ".png";
         }
 
         public static double? TryGetImageAspectRatio(string? path)

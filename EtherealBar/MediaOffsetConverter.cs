@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -29,13 +29,13 @@ namespace EtherealBar
 
             if (sourceAspectRatio >= viewportAspect)
             {
-                baseHeight = viewportHeight;
-                baseWidth = baseHeight * sourceAspectRatio;
+                baseWidth = viewportWidth;
+                baseHeight = baseWidth / sourceAspectRatio;
             }
             else
             {
-                baseWidth = viewportWidth;
-                baseHeight = baseWidth / sourceAspectRatio;
+                baseHeight = viewportHeight;
+                baseWidth = baseHeight * sourceAspectRatio;
             }
 
             double scaledWidth = baseWidth * mediaScale;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -64,6 +64,19 @@ namespace EtherealBar
                 UpdatePreviewElementSize();
                 UpdateTransformsFromOffsets();
                 PreviewVideo.Play();
+            }
+            else if (MediaFileHelper.IsGifFile(_config.Path))
+            {
+                PreviewGif.SourcePath = _config.Path;
+                PreviewGif.Visibility = Visibility.Visible;
+                PreviewGif.RenderTransform = new TransformGroup();
+                ((TransformGroup)PreviewGif.RenderTransform).Children.Add(_scaleTransform);
+                ((TransformGroup)PreviewGif.RenderTransform).Children.Add(_translateTransform);
+                
+                _sourceAspectRatio = Math.Max(0.01, MediaFileHelper.TryGetImageAspectRatio(_config.Path) ?? _sourceAspectRatio);
+                
+                UpdatePreviewElementSize();
+                UpdateTransformsFromOffsets();
             }
             else
             {
@@ -139,6 +152,8 @@ namespace EtherealBar
             PreviewImage.Height = baseHeight;
             PreviewVideo.Width = baseWidth;
             PreviewVideo.Height = baseHeight;
+            PreviewGif.Width = baseWidth;
+            PreviewGif.Height = baseHeight;
         }
 
         private void UpdateTransformsFromOffsets()
@@ -167,7 +182,11 @@ namespace EtherealBar
             if (_sourceAspectRatio <= 0 || ViewportBorder.ActualWidth <= 0 || ViewportBorder.ActualHeight <= 0)
                 return 0;
 
-            FrameworkElement previewElement = PreviewImage.Visibility == Visibility.Visible ? PreviewImage : PreviewVideo;
+            FrameworkElement previewElement;
+            if (PreviewImage.Visibility == Visibility.Visible) previewElement = PreviewImage;
+            else if (PreviewVideo.Visibility == Visibility.Visible) previewElement = PreviewVideo;
+            else previewElement = PreviewGif;
+
             double baseWidth = previewElement.Width;
             double baseHeight = previewElement.Height;
 
@@ -275,6 +294,7 @@ namespace EtherealBar
             if (PreviewVideo.NaturalVideoHeight > 0)
             {
                 _sourceAspectRatio = (double)PreviewVideo.NaturalVideoWidth / PreviewVideo.NaturalVideoHeight;
+                _config.SourceAspectRatio = _sourceAspectRatio;
             }
 
             UpdatePreviewElementSize();

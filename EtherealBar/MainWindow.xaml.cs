@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -93,11 +94,16 @@ namespace EtherealBar
         private Brush _panelBackgroundBrush = Brushes.Transparent;
         private bool _isExiting = false;
         private PanelDockPosition _panelDock = PanelDockPosition.Bottom;
+        private bool _showTileBorder = true;
+        private string _titleFontFamily = "Segoe UI";
+        private double _titleFontSizeScale = 1.0;
+        private Color _titleColor = Colors.White;
+        private double _titleVerticalOffset = 1.0;
 
         private const double BaseTileHeight = 373;
         private const double MinTileHeight = 120;
         private const double TileVerticalPadding = 40;
-        private const double MinWidgetHeightInEditMode = 320;
+        private const double MinWidgetHeight = 320;
         private const double OverlayOutsideOffset = 40;
         private const double OverlayGap = 8;
 
@@ -121,8 +127,6 @@ namespace EtherealBar
         private readonly Dictionary<WorkspaceConfig, int> _workspaceLastCounts = new Dictionary<WorkspaceConfig, int>();
         private bool _isLoadingSettings;
 
-        public double MinWidgetHeight => IsEditMode ? MinWidgetHeightInEditMode : 200;
-
         public bool IsEditMode
         {
             get => _isEditMode;
@@ -131,14 +135,8 @@ namespace EtherealBar
                 if (_isEditMode == value) return;
                 _isEditMode = value;
                 OnPropertyChanged(nameof(IsEditMode));
-                OnPropertyChanged(nameof(MinWidgetHeight));
                 OnPropertyChanged(nameof(CanAddWorkspace));
                 OnPropertyChanged(nameof(CanDeleteWorkspaces));
-
-                if (_isEditMode && WidgetHeight < MinWidgetHeightInEditMode)
-                {
-                    WidgetHeight = MinWidgetHeightInEditMode;
-                }
             }
         }
 
@@ -184,13 +182,34 @@ namespace EtherealBar
             set { if (value) PanelDock = PanelDockPosition.Bottom; }
         }
 
+        public bool ShowTileBorder
+        {
+            get => _showTileBorder;
+            set
+            {
+                if (_showTileBorder == value) return;
+                _showTileBorder = value;
+                OnPropertyChanged(nameof(ShowTileBorder));
+            }
+        }
+
+        public string TitleFontFamily { get => _titleFontFamily; set { _titleFontFamily = value; OnPropertyChanged(nameof(TitleFontFamily)); } }
+        public double TitleFontSizeScale { get => _titleFontSizeScale; set { _titleFontSizeScale = value; OnPropertyChanged(nameof(TitleFontSizeScale)); } }
+        public Color TitleColor { get => _titleColor; set { _titleColor = value; OnPropertyChanged(nameof(TitleColor)); OnPropertyChanged(nameof(TitleForegroundBrush)); } }
+        public Brush TitleForegroundBrush => new SolidColorBrush(TitleColor);
+        public double TitleVerticalOffset { get => _titleVerticalOffset; set { _titleVerticalOffset = value; OnPropertyChanged(nameof(TitleVerticalOffset)); } }
+
         public double WidgetHeight
         {
             get => _widgetHeight;
             set
             {
-                double clamped = Clamp(value, MinWidgetHeight, MaxWidgetHeight);
+                // Round to nearest 10 for stepped movement
+                double steppedValue = Math.Round(value / 10.0) * 10.0;
+                double clamped = Clamp(steppedValue, MinWidgetHeight, MaxWidgetHeight);
+                
                 if (Math.Abs(_widgetHeight - clamped) < 0.1) return;
+                
                 _widgetHeight = clamped;
                 OnPropertyChanged(nameof(WidgetHeight));
                 OnPropertyChanged(nameof(TileWidth));
@@ -198,6 +217,8 @@ namespace EtherealBar
                 UpdateLayoutMetrics();
             }
         }
+
+        public double MinWidgetHeightValue => MinWidgetHeight;
 
         public double PanelBackgroundOpacity
         {
@@ -445,6 +466,12 @@ namespace EtherealBar
                     _settingsWindow = null;
                 }
 
+                if (IsEditMode)
+                {
+                    IsEditMode = false;
+                    PruneEmptyWorkspaces();
+                }
+
                 var fadeOut = new DoubleAnimation(0, TimeSpan.FromSeconds(0.12))
                 {
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut },
@@ -499,8 +526,16 @@ namespace EtherealBar
             {
                 var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
                 var media = FindVisualChild<MediaElement>(container);
-                if (media == null) continue;
-                try { media.Pause(); } catch { }
+                if (media != null)
+                {
+                    try { media.Pause(); } catch { }
+                }
+
+                var gif = FindVisualChild<AnimatedGifImage>(container);
+                if (gif != null)
+                {
+                    try { gif.Visibility = Visibility.Collapsed; } catch { }
+                }
             }
         }
 
@@ -509,14 +544,28 @@ namespace EtherealBar
             for (int i = 0; i < host.Items.Count; i++)
             {
                 var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
+                
                 var media = FindVisualChild<MediaElement>(container);
-                if (media == null) continue;
-                try
+                if (media != null)
                 {
-                    if (media.Visibility == Visibility.Visible)
-                        media.Play();
+                    try
+                    {
+                        if (media.Visibility == Visibility.Visible)
+                            media.Play();
+                    }
+                    catch { }
                 }
-                catch { }
+
+                var gif = FindVisualChild<AnimatedGifImage>(container);
+                if (gif != null)
+                {
+                    try
+                    {
+                        if (gif.DataContext is ButtonConfig cfg && cfg.IsGifVisible == Visibility.Visible)
+                            gif.Visibility = Visibility.Visible;
+                    }
+                    catch { }
+                }
             }
         }
 
@@ -628,6 +677,11 @@ namespace EtherealBar
                         }
                         PanelBackgroundOpacity = s.PanelBackgroundOpacity;
                         WidgetHeight = s.WidgetHeight;
+                        ShowTileBorder = s.ShowTileBorder;
+                        TitleFontFamily = !string.IsNullOrWhiteSpace(s.TitleFontFamily) ? s.TitleFontFamily : "Segoe UI";
+                        TitleFontSizeScale = s.TitleFontSizeScale > 0 ? s.TitleFontSizeScale : 1.0;
+                        TitleColor = (Color)ColorConverter.ConvertFromString(!string.IsNullOrWhiteSpace(s.TitleColorHex) ? s.TitleColorHex : "#FFFFFFFF");
+                        TitleVerticalOffset = s.TitleVerticalOffset;
                         PanelDock = string.Equals(s.PanelDock, "Top", StringComparison.OrdinalIgnoreCase)
                             ? PanelDockPosition.Top
                             : PanelDockPosition.Bottom;
@@ -746,6 +800,11 @@ namespace EtherealBar
                     PanelBackgroundColorHex = PanelBackgroundColor.ToString(),
                     WidgetHeight = WidgetHeight,
                     PanelBackgroundOpacity = PanelBackgroundOpacity,
+                    ShowTileBorder = ShowTileBorder,
+                    TitleFontFamily = TitleFontFamily,
+                    TitleFontSizeScale = TitleFontSizeScale,
+                    TitleColorHex = TitleColor.ToString(),
+                    TitleVerticalOffset = TitleVerticalOffset,
                     PanelDock = PanelDock == PanelDockPosition.Top ? "Top" : "Bottom",
                     SelectedWorkspaceName = SelectedWorkspace?.Name,
                     Workspaces = Workspaces
@@ -1373,6 +1432,11 @@ namespace EtherealBar
         public double WidgetHeight { get; set; } = 400;
         public double TileScale { get; set; } = 1.0;
         public double PanelBackgroundOpacity { get; set; } = 0.82;
+        public bool ShowTileBorder { get; set; } = true;
+        public string TitleFontFamily { get; set; } = "Segoe UI";
+        public double TitleFontSizeScale { get; set; } = 1.0;
+        public string TitleColorHex { get; set; } = "#FFFFFFFF";
+        public double TitleVerticalOffset { get; set; } = 1.0;
         public string PanelDock { get; set; } = "Bottom";
         public string? SelectedWorkspaceName { get; set; }
         public List<WorkspaceSettings>? Workspaces { get; set; }
@@ -1453,6 +1517,7 @@ namespace EtherealBar
                 OnPropertyChanged(nameof(Path));
                 OnPropertyChanged(nameof(IsVideoVisible));
                 OnPropertyChanged(nameof(IsGifVisible));
+                OnPropertyChanged(nameof(IsPng));
                 OnPropertyChanged(nameof(IsStaticImageVisible));
             }
         }
@@ -1495,6 +1560,7 @@ namespace EtherealBar
 
         [JsonIgnore] public Visibility IsVideoVisible => MediaFileHelper.IsVideoFile(Path) ? Visibility.Visible : Visibility.Collapsed;
         [JsonIgnore] public Visibility IsGifVisible => MediaFileHelper.IsGifFile(Path) ? Visibility.Visible : Visibility.Collapsed;
+        [JsonIgnore] public bool IsPng => MediaFileHelper.IsPngFile(Path);
         [JsonIgnore] public Visibility IsStaticImageVisible =>
             (!MediaFileHelper.IsVideoFile(Path) && !MediaFileHelper.IsGifFile(Path)) ? Visibility.Visible : Visibility.Collapsed;
         [JsonIgnore] public bool IsDragging { get => _isDragging; set { _isDragging = value; OnPropertyChanged(nameof(IsDragging)); } }
@@ -1504,5 +1570,36 @@ namespace EtherealBar
         public void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }
 
+    public class TextPositionConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (values != null && values.Length >= 2 && values[0] is double offset && values[1] is double tileHeight)
+            {
+                double padding = 45; 
+                double availableRange = Math.Max(0, tileHeight - (padding * 2));
+                return (offset - 0.5) * availableRange;
+            }
+            return 0d;
+        }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
+    }
+
+    public class FontSizeConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (values != null && values.Length >= 2 && values[0] is double scale && values[1] is double tileHeight)
+            {
+                double baseFontSize = 16.0;
+                double baseTileHeight = 360.0;
+                
+                double adaptiveSize = (tileHeight / baseTileHeight) * baseFontSize;
+                return Math.Clamp(adaptiveSize * scale, 8, 120);
+            }
+            return 16.0;
+        }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
+    }
 }
 

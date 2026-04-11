@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,6 +13,7 @@ namespace EtherealBar
     public partial class SettingsWindow : Window
     {
         private MainWindow? Main => Owner as MainWindow;
+        public IEnumerable<string> AvailableFonts { get; } = Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(s => s).ToList();
 
         public SettingsWindow()
         {
@@ -56,6 +58,14 @@ namespace EtherealBar
             if (!TryPickColor(Main.PanelBackgroundColor, out System.Windows.Media.Color color)) return;
 
             Main.PanelBackgroundColor = color;
+        }
+
+        private void PickTitleColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (Main == null) return;
+            if (!TryPickColor(Main.TitleColor, out System.Windows.Media.Color color)) return;
+
+            Main.TitleColor = color;
         }
 
         private static bool TryPickColor(System.Windows.Media.Color initial, out System.Windows.Media.Color selected)
