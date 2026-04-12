@@ -1,5 +1,5 @@
 #define MyAppName "EtherealBar"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.1"
 #define MyAppPublisher "ZEUS494"
 #define MyAppExeName "EtherealBar.exe"
 
@@ -14,8 +14,8 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-OutputDir=..\artifacts\installer
-OutputBaseFilename=EtherealBar-Setup-{#MyAppVersion}
+OutputDir=..
+OutputBaseFilename=EtherealBar-Setup-v{#MyAppVersion}
 SetupIconFile=..\EtherealBar\EtherealBar.ico
 Compression=lzma2
 SolidCompression=yes
@@ -29,7 +29,7 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительные задачи:"; Flags: unchecked
 
 [Files]
-Source: "..\artifacts\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.pdb,settings.json"
+Source: "..\Publish_v1.3.1\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.pdb,settings.json"
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
