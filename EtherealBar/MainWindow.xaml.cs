@@ -90,7 +90,7 @@ namespace EtherealBar
         private bool _isPanelVisible = false;
         private bool _isInternalShutdown = false;
         private Brush _globalBorderBrush = Brushes.Cyan;
-        private Color _panelBackgroundColor = Color.FromRgb(5, 5, 5);
+        private Color _panelBackgroundColor = Color.FromRgb(10, 10, 10);
         private Brush _panelBackgroundBrush = Brushes.Transparent;
         private bool _isExiting = false;
         private PanelDockPosition _panelDock = PanelDockPosition.Bottom;
@@ -345,40 +345,6 @@ namespace EtherealBar
                 ? SystemParameters.WorkArea.Top
                 : SystemParameters.WorkArea.Bottom - this.Height;
 
-            FullPanelContainer.VerticalAlignment =
-                PanelDock == PanelDockPosition.Top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
-
-            // Tabs + top-right buttons sit "above" the panel when docked to bottom.
-            // When docked to top, place them below the panel (using the window extra height).
-            if (WorkspaceTabsScrollViewer != null)
-            {
-                double offset = -(OverlayOutsideOffset + OverlayGap);
-                if (PanelDock == PanelDockPosition.Top)
-                {
-                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Bottom;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, 0, 160, offset);
-                }
-                else
-                {
-                    WorkspaceTabsScrollViewer.VerticalAlignment = VerticalAlignment.Top;
-                    WorkspaceTabsScrollViewer.Margin = new Thickness(12, offset, 160, 0);
-                }
-            }
-            if (TopRightButtonsPanel != null)
-            {
-                double offset = -(OverlayOutsideOffset + OverlayGap);
-                if (PanelDock == PanelDockPosition.Top)
-                {
-                    TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Bottom;
-                    TopRightButtonsPanel.Margin = new Thickness(12, 0, 12, offset);
-                }
-                else
-                {
-                    TopRightButtonsPanel.VerticalAlignment = VerticalAlignment.Top;
-                    TopRightButtonsPanel.Margin = new Thickness(12, offset, 12, 0);
-                }
-            }
-
             if (!_isPanelVisible)
             {
                 PanelTransform.Y = GetHiddenTranslateY();
@@ -452,6 +418,7 @@ namespace EtherealBar
                 this.Topmost = true;
 
                 ManageAllMedia(true);
+                CompositionTarget.Rendering -= OnRenderFrame;
                 CompositionTarget.Rendering += OnRenderFrame;
                 PanelTransform.BeginAnimation(TranslateTransform.YProperty, anim);
 
@@ -482,6 +449,8 @@ namespace EtherealBar
                 anim.Completed += (s, e) => {
                     if (!_isPanelVisible)
                     {
+                        this.BeginAnimation(OpacityProperty, null);
+                        this.Opacity = 0;
                         CompositionTarget.Rendering -= OnRenderFrame;
                         ManageAllMedia(false);
                         RunDeepCleanup();
@@ -495,8 +464,37 @@ namespace EtherealBar
 
         private void ManageAllMedia(bool play)
         {
-            if (play) PlayActiveWorkspaceMedia();
-            else PauseAllMedia();
+            if (play)
+            {
+                PlayActiveWorkspaceMedia();
+            }
+            else
+            {
+                PauseAllMedia();
+                foreach (var host in _workspaceMediaHosts.Values)
+                {
+                    StopMediaInHost(host);
+                }
+            }
+        }
+
+        private void StopMediaInHost(ItemsControl host)
+        {
+            for (int i = 0; i < host.Items.Count; i++)
+            {
+                var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
+                var media = FindVisualChild<MediaElement>(container);
+                if (media != null)
+                {
+                    try { media.Stop(); } catch { }
+                }
+
+                var gif = FindVisualChild<AnimatedGifImage>(container);
+                if (gif != null)
+                {
+                    try { gif.Visibility = Visibility.Collapsed; } catch { }
+                }
+            }
         }
 
         private void PauseAllMedia()
@@ -514,7 +512,7 @@ namespace EtherealBar
                 _activeMediaHost = host;
             }
 
-            if (_activeMediaHost != null)
+            if (_activeMediaHost != null && _isPanelVisible)
             {
                 PlayMediaInHost(_activeMediaHost);
             }
@@ -541,32 +539,7 @@ namespace EtherealBar
 
         private void PlayMediaInHost(ItemsControl host)
         {
-            for (int i = 0; i < host.Items.Count; i++)
-            {
-                var container = host.ItemContainerGenerator.ContainerFromIndex(i) as ContentPresenter;
-                
-                var media = FindVisualChild<MediaElement>(container);
-                if (media != null)
-                {
-                    try
-                    {
-                        if (media.Visibility == Visibility.Visible)
-                            media.Play();
-                    }
-                    catch { }
-                }
-
-                var gif = FindVisualChild<AnimatedGifImage>(container);
-                if (gif != null)
-                {
-                    try
-                    {
-                        if (gif.DataContext is ButtonConfig cfg && cfg.IsGifVisible == Visibility.Visible)
-                            gif.Visibility = Visibility.Visible;
-                    }
-                    catch { }
-                }
-            }
+            UpdateVisibleMedia();
         }
 
         private void WorkspaceMediaHost_Loaded(object sender, RoutedEventArgs e)
@@ -641,12 +614,75 @@ namespace EtherealBar
             {
                 _currentOffset += (_targetOffset - _currentOffset) * 0.08;
                 MainScrollViewer.ScrollToHorizontalOffset(_currentOffset);
+                UpdateVisibleMedia();
             }
+            else
+            {
+                _currentOffset = _targetOffset;
+                MainScrollViewer.ScrollToHorizontalOffset(_currentOffset);
+                CompositionTarget.Rendering -= OnRenderFrame;
+                UpdateVisibleMedia();
+            }
+        }
+
+        private void UpdateVisibleMedia()
+        {
+            if (!_isPanelVisible || SelectedWorkspace == null) return;
+            if (!_workspaceMediaHosts.TryGetValue(SelectedWorkspace, out var host)) return;
+            if (host.ItemContainerGenerator.Status != System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated) return;
+
+            for (int i = 0; i < host.Items.Count; i++)
+            {
+                var container = host.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+                if (container == null) continue;
+
+                bool isVisible = IsElementVisibleInScrollViewer(container, MainScrollViewer);
+                
+                var media = FindVisualChild<MediaElement>(container);
+                if (media != null)
+                {
+                    try
+                    {
+                        if (isVisible && media.Visibility == Visibility.Visible)
+                        {
+                            media.Play();
+                        }
+                        else
+                        {
+                            media.Pause();
+                        }
+                    }
+                    catch { }
+                }
+
+                var gif = FindVisualChild<AnimatedGifImage>(container);
+                if (gif != null)
+                {
+                    try
+                    {
+                        if (isVisible && gif.DataContext is ButtonConfig cfg && cfg.IsGifVisible == Visibility.Visible)
+                            gif.Visibility = Visibility.Visible;
+                        else
+                            gif.Visibility = Visibility.Collapsed;
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        private static bool IsElementVisibleInScrollViewer(FrameworkElement element, ScrollViewer scrollViewer)
+        {
+            if (!element.IsVisible) return false;
+            Rect bounds = element.TransformToAncestor(scrollViewer).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+            Rect viewport = new Rect(0, 0, scrollViewer.ViewportWidth, scrollViewer.ViewportHeight);
+            return viewport.IntersectsWith(bounds);
         }
 
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             _targetOffset = Math.Max(0, Math.Min(MainScrollViewer.ScrollableWidth, _targetOffset - (e.Delta / 120.0) * 250));
+            CompositionTarget.Rendering -= OnRenderFrame;
+            CompositionTarget.Rendering += OnRenderFrame;
             e.Handled = true;
         }
 
@@ -768,25 +804,22 @@ namespace EtherealBar
 
             if (Buttons.Count == 0) Buttons.Add(new ButtonConfig { Title = "Desktop" });
 
-            foreach (var button in Workspaces.SelectMany(w => w.Buttons))
+            Task.Run(() =>
             {
-                double? imageAspectRatio = MediaFileHelper.TryGetImageAspectRatio(button.Path);
-                if (imageAspectRatio.HasValue)
+                foreach (var button in Workspaces.SelectMany(w => w.Buttons).ToList())
                 {
-                    button.SourceAspectRatio = imageAspectRatio.Value;
-                }
-
-                if (button.IsVideoVisible == Visibility.Visible && !string.IsNullOrEmpty(button.Path))
-                {
-                    try
+                    if (!string.IsNullOrEmpty(button.Path))
                     {
-                        var tempMedia = new MediaElement { Source = new Uri(button.Path), LoadedBehavior = MediaState.Manual };
-                        tempMedia.Play();
-                        tempMedia.Stop();
+                        double? imageAspectRatio = MediaFileHelper.TryGetImageAspectRatio(button.Path);
+                        if (imageAspectRatio.HasValue)
+                        {
+                            Dispatcher.BeginInvoke(new Action(() => {
+                                button.SourceAspectRatio = imageAspectRatio.Value;
+                            }));
+                        }
                     }
-                    catch { }
                 }
-            }
+            });
         }
 
         public void SaveSettings()
@@ -869,7 +902,7 @@ namespace EtherealBar
             }
         }
 
-        private void ToggleEditMode_Click(object sender, RoutedEventArgs e)
+        private void EditMode_Click(object sender, RoutedEventArgs e)
         {
             IsEditMode = !IsEditMode;
             if (!IsEditMode)
@@ -878,6 +911,18 @@ namespace EtherealBar
                 SaveSettings();
             }
         }
+
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSettings_Click(sender, e);
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            _isInternalShutdown = true;
+            Application.Current.Shutdown();
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e) { if (_isPanelVisible) TogglePanel(); }
         private void AddButton_Click(object sender, RoutedEventArgs e) { Buttons.Add(new ButtonConfig { Title = "New" }); }
         private void DeleteButton_Click(object sender, RoutedEventArgs e) { if (sender is Button b && b.Tag is ButtonConfig c) Buttons.Remove(c); }
