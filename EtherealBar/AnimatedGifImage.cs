@@ -41,7 +41,7 @@ namespace EtherealBar
 
         public AnimatedGifImage()
         {
-            _timer = new DispatcherTimer(DispatcherPriority.Render);
+            _timer = new DispatcherTimer(DispatcherPriority.Input);
             _timer.Tick += Timer_Tick;
 
             Loaded += (_, _) => TryStart();
@@ -97,6 +97,11 @@ namespace EtherealBar
         private void TryStart()
         {
             if (!IsLoaded || Visibility != Visibility.Visible) return;
+            
+            // Проверка видимости окна
+            var window = Window.GetWindow(this);
+            if (window != null && window.Visibility != Visibility.Visible) return;
+
             if (_frames == null || _delays == null || _frames.Count <= 1) return;
             if (_timer.IsEnabled) return;
 

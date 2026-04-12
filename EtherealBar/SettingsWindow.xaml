@@ -13,10 +13,11 @@
         WindowStartupLocation="Manual">
 
     <Window.Resources>
+        <!-- Common Styles -->
         <Style x:Key="RoundedButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#20FFFFFF"/>
+            <Setter Property="Background" Value="#1AFFFFFF"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#35FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#25FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="14,8"/>
@@ -28,18 +29,23 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12">
+                                CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#30FFFFFF"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#60FFFFFF"/>
+                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{Binding GlobalBorderBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#18FFFFFF"/>
+                                <Setter TargetName="border" Property="Background" Value="#10FFFFFF"/>
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -48,59 +54,69 @@
         </Style>
 
         <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
-            <Setter Property="Width" Value="32"/>
-            <Setter Property="Height" Value="32"/>
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="16"/>
         </Style>
 
         <Style x:Key="SliderTrackButtonBaseStyle" TargetType="RepeatButton">
             <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Background" Value="#B8B8B8"/>
+            <Setter Property="Background" Value="#33FFFFFF"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RepeatButton">
                         <Border Background="{TemplateBinding Background}"
-                                Height="2"
+                                Height="6"
                                 VerticalAlignment="Center"
-                                CornerRadius="1"/>
+                                CornerRadius="3"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
         <Style x:Key="SliderDecreaseRepeatButtonStyle" TargetType="RepeatButton" BasedOn="{StaticResource SliderTrackButtonBaseStyle}">
-            <Setter Property="Background" Value="#4A67D6"/>
-        </Style>
-
-        <Style x:Key="SliderIncreaseRepeatButtonStyle" TargetType="RepeatButton" BasedOn="{StaticResource SliderTrackButtonBaseStyle}">
-            <Setter Property="Background" Value="#B8B8B8"/>
+            <Setter Property="Background" Value="{Binding GlobalBorderBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    Height="6"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="3">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="Black" Opacity="0.3"/>
+                                </Border.Effect>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="SliderThumbStyle" TargetType="Thumb">
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="14"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Grid Width="14" Height="14">
-                            <Ellipse x:Name="AccentRing"
-                                     Width="14"
-                                     Height="14"
-                                     Fill="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                     Opacity="1"/>
+                        <Grid Width="24" Height="24">
+                            <Ellipse x:Name="OuterCircle"
+                                     Fill="{Binding GlobalBorderBrush}"
+                                     Width="24" Height="24">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Color="Black" Opacity="0.8"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
                             <Ellipse x:Name="InnerCircle"
-                                     Width="10"
-                                     Height="10"
-                                     Fill="#FFFFFFFF"
-                                     StrokeThickness="0"/>
+                                     Fill="White"
+                                     Width="12" Height="12"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="InnerCircle" Property="Fill" Value="#F4F6FF"/>
-                            </Trigger>
-                            <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="InnerCircle" Property="Opacity" Value="0"/>
+                                <Setter TargetName="OuterCircle" Property="Stroke" Value="White"/>
+                                <Setter TargetName="OuterCircle" Property="StrokeThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -109,25 +125,21 @@
         </Style>
 
         <Style x:Key="ScrollThumbStyle" TargetType="Thumb">
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Opacity" Value="0.45"/>
+            <Setter Property="Width" Value="6"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Border x:Name="ThumbBorder"
-                                Width="6"
-                                CornerRadius="3"
-                                Background="#66000000"
-                                BorderBrush="#15000000"
-                                BorderThickness="1"/>
+                                Width="4"
+                                CornerRadius="2"
+                                Background="#33FFFFFF"
+                                Margin="1,0"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="0.7"/>
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#88000000"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#55FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter Property="Opacity" Value="0.85"/>
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#AA000000"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#77FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -136,34 +148,16 @@
         </Style>
 
         <Style TargetType="ScrollBar">
-            <Setter Property="Width" Value="10"/>
+            <Setter Property="Width" Value="8"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
-                        <Grid Background="Transparent"
-                              Margin="2,0,0,0">
-                            <Border Width="6"
-                                    HorizontalAlignment="Center"
-                                    Background="#12000000"
-                                    CornerRadius="3"/>
-                            <Track x:Name="PART_Track"
-                                   IsDirectionReversed="True">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="ScrollBar.PageUpCommand"
-                                                  Background="Transparent"
-                                                  BorderThickness="0"
-                                                  Focusable="False"/>
-                                </Track.DecreaseRepeatButton>
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
                                 <Track.Thumb>
                                     <Thumb Style="{StaticResource ScrollThumbStyle}"/>
                                 </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="ScrollBar.PageDownCommand"
-                                                  Background="Transparent"
-                                                  BorderThickness="0"
-                                                  Focusable="False"/>
-                                </Track.IncreaseRepeatButton>
                             </Track>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -177,19 +171,18 @@
         </Style>
 
         <Style TargetType="Slider">
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Margin" Value="0,6,0,0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,8,0,0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Grid Height="20"
+                        <Grid Height="32"
                               VerticalAlignment="Center">
                             <Track x:Name="PART_Track"
                                    VerticalAlignment="Center">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Command="Slider.DecreaseLarge"
-                                                  Background="{Binding DataContext.GlobalBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                                   Style="{StaticResource SliderDecreaseRepeatButtonStyle}"/>
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
@@ -197,7 +190,7 @@
                                 </Track.Thumb>
                                 <Track.IncreaseRepeatButton>
                                     <RepeatButton Command="Slider.IncreaseLarge"
-                                                  Style="{StaticResource SliderIncreaseRepeatButtonStyle}"/>
+                                                  Style="{StaticResource SliderTrackButtonBaseStyle}"/>
                                 </Track.IncreaseRepeatButton>
                             </Track>
                         </Grid>
@@ -205,13 +198,209 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <BulletDecorator Background="Transparent">
+                            <BulletDecorator.Bullet>
+                                <Border x:Name="border"
+                                        Width="22" Height="22"
+                                        CornerRadius="6"
+                                        Background="#33FFFFFF"
+                                        BorderBrush="#44FFFFFF"
+                                        BorderThickness="1.5">
+                                    <Path x:Name="checkMark"
+                                          Width="12" Height="10"
+                                          Visibility="Collapsed"
+                                          Data="M 0,5 L 4,9 L 12,0"
+                                          Stroke="White"
+                                          StrokeThickness="2.5"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"/>
+                                </Border>
+                            </BulletDecorator.Bullet>
+                            <ContentPresenter Margin="12,0,0,0"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+                        </BulletDecorator>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{Binding GlobalBorderBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="White"/>
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="White"/>
+                                <Setter TargetName="border" Property="Background" Value="#44FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <BulletDecorator Background="Transparent">
+                            <BulletDecorator.Bullet>
+                                <Border x:Name="border"
+                                        Width="20" Height="20"
+                                        CornerRadius="10"
+                                        Background="#1AFFFFFF"
+                                        BorderBrush="#25FFFFFF"
+                                        BorderThickness="1.5">
+                                    <Ellipse x:Name="dot"
+                                             Width="10" Height="10"
+                                             Fill="White"
+                                             Visibility="Collapsed"/>
+                                </Border>
+                            </BulletDecorator.Bullet>
+                            <ContentPresenter Margin="10,0,0,0"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+                        </BulletDecorator>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{Binding GlobalBorderBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{Binding GlobalBorderBrush}"/>
+                                <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{Binding GlobalBorderBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#1AFFFFFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#25FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Padding="{TemplateBinding Padding}"
+                                          ClickMode="Press"
+                                          Focusable="false"
+                                          IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="border"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="30" />
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                                  VerticalAlignment="Center"
+                                                                  HorizontalAlignment="Left" />
+                                                <Path Grid.Column="1"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Data="M 0 0 L 4 4 L 8 0"
+                                                      Stroke="White"
+                                                      StrokeThickness="2" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border" Property="BorderBrush" Value="{Binding GlobalBorderBrush}"/>
+                                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="12,3,33,3"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left" />
+                            <Popup Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border x:Name="DropDownBorder"
+                                        Background="#1A1A1A"
+                                        BorderBrush="#33FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="300"
+                                        Margin="0,4,0,0">
+                                    <ScrollViewer Margin="4" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="border"
+                                Background="Transparent"
+                                CornerRadius="4"
+                                Margin="2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#33FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{Binding GlobalBorderBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Border Background="#F2181818"
-            BorderBrush="#40FFFFFF"
-            BorderThickness="1"
-            CornerRadius="14"
-            Padding="16">
+    <Border Background="#F20A0A0A"
+            BorderBrush="#1AFFFFFF"
+            BorderThickness="1.5"
+            CornerRadius="20"
+            Padding="0">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -219,168 +408,171 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
+            <!-- Title Bar -->
             <Border Grid.Row="0"
-                    Margin="-16,-16,-16,0"
-                    Padding="16,12,16,12"
-                    Background="#CC101114"
-                    BorderBrush="#18FFFFFF"
+                    Padding="20,16,16,16"
+                    Background="#1AFFFFFF"
+                    BorderBrush="#10FFFFFF"
                     BorderThickness="0,0,0,1"
-                    CornerRadius="14,14,0,0"
+                    CornerRadius="20,20,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid Background="Transparent">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0"
-                               Text="Настройки"
-                               Foreground="White"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" 
+                                 Fill="{Binding GlobalBorderBrush}"
+                                 Margin="0,0,12,0"/>
+                        <TextBlock Text="Настройки"
+                                   Foreground="White"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
 
                     <Button Grid.Column="1"
                             Content="✕"
                             Style="{StaticResource IconButtonStyle}"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
                             Click="Close_Click"/>
                 </Grid>
             </Border>
 
+            <!-- Content Area -->
             <ScrollViewer Grid.Row="1"
-                          Margin="0,12,0,0"
+                          Margin="20,10,12,10"
                           CanContentScroll="False"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           PanningMode="VerticalOnly">
-                <StackPanel>
-                    <CheckBox Margin="0,2,0,0"
-                              Content="Режим редактирования"
-                              Foreground="White"
-                              IsChecked="{Binding IsEditMode, Mode=TwoWay}"/>
-
-                    <CheckBox Margin="0,12,0,0"
-                              Content="Показывать границы карточек"
-                              Foreground="White"
-                              IsChecked="{Binding ShowTileBorder, Mode=TwoWay}"/>
-
-                    <StackPanel Margin="0,12,0,0">
-                        <DockPanel>
-                            <TextBlock Text="Высота виджета" Foreground="White" Opacity="0.8"/>
-                            <TextBlock DockPanel.Dock="Right"
-                                       Text="{Binding WidgetHeight, StringFormat={}{0:0}px}"
-                                       Foreground="White"
-                                       Opacity="0.8"/>
-                        </DockPanel>
-                        <Slider Minimum="{Binding MinWidgetHeightValue}"
-                                Maximum="{Binding MaxWidgetHeight}"
-                                Value="{Binding WidgetHeight, Mode=TwoWay}"
-                                TickFrequency="10"
-                                IsSnapToTickEnabled="True"
-                                IsMoveToPointEnabled="True"/>
-                        <TextBlock Text="Максимум: половина высоты экрана"
-                                   Foreground="White"
-                                   Opacity="0.45"
-                                   FontSize="11"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,12,0,0">
-                        <DockPanel>
-                            <TextBlock Text="Прозрачность фона панели" Foreground="White" Opacity="0.8"/>
-                            <TextBlock DockPanel.Dock="Right"
-                                       Text="{Binding PanelBackgroundOpacity, StringFormat={}{0:0.00}}"
-                                       Foreground="White"
-                                       Opacity="0.8"/>
-                        </DockPanel>
-                        <Slider Minimum="0.00"
-                                Maximum="1.00"
-                                Value="{Binding PanelBackgroundOpacity, Mode=TwoWay}"
-                                TickFrequency="0.05"
-                                IsSnapToTickEnabled="True"
-                                IsMoveToPointEnabled="True"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,14,0,0">
-                        <TextBlock Text="Положение панели" Foreground="White" Opacity="0.8"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <RadioButton Content="Снизу"
-                                         Foreground="White"
-                                         Margin="0,0,18,0"
-                                         IsChecked="{Binding IsDockBottom, Mode=TwoWay}"/>
-                            <RadioButton Content="Сверху"
-                                         Foreground="White"
-                                         IsChecked="{Binding IsDockTop, Mode=TwoWay}"/>
-                        </StackPanel>
-                        <TextBlock Text="Панель будет выезжать сверху или снизу экрана."
-                                   Foreground="White"
-                                   Opacity="0.45"
-                                   FontSize="11"
-                                   Margin="0,6,0,0"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,14,0,0">
-                        <TextBlock Text="Акцентный цвет" Foreground="White" Opacity="0.8"/>
-                        <ListBox x:Name="ColorPicker"
-                                 Margin="0,8,0,0"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 SelectionChanged="ColorPicker_SelectionChanged">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal"/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Width="20"
-                                            Height="20"
-                                            Background="{Binding}"
-                                            CornerRadius="10"
-                                            Margin="4"
-                                            BorderBrush="White"
-                                            BorderThickness="1"
-                                            Cursor="Hand"/>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                            <SolidColorBrush>Cyan</SolidColorBrush>
-                            <SolidColorBrush>Lime</SolidColorBrush>
-                            <SolidColorBrush>OrangeRed</SolidColorBrush>
-                            <SolidColorBrush>Magenta</SolidColorBrush>
-                            <SolidColorBrush>Yellow</SolidColorBrush>
-                            <SolidColorBrush>White</SolidColorBrush>
-                        </ListBox>
-                        <Button Margin="0,8,0,0"
-                                Height="34"
-                                Content="Выбрать акцентный цвет..."
-                                Style="{StaticResource RoundedButtonStyle}"
-                                Click="PickBorderColor_Click"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,12,0,0">
-                        <TextBlock Text="Цвет фона панели" Foreground="White" Opacity="0.8"/>
-                        <Button Margin="0,8,0,0"
-                                Height="34"
-                                Content="Выбрать цвет фона..."
-                                Style="{StaticResource RoundedButtonStyle}"
-                                Click="PickPanelColor_Click"/>
-                    </StackPanel>
-
-                    <!-- Text Settings Section -->
-                    <Border Margin="0,20,0,0" BorderBrush="#20FFFFFF" BorderThickness="0,1,0,0" Padding="0,15,0,0">
+                <StackPanel Margin="0,0,8,0">
+                    <!-- General Settings -->
+                    <TextBlock Text="ОСНОВНОЕ" Foreground="White" Opacity="0.4" FontSize="11" FontWeight="Bold" Margin="0,15,0,10"/>
+                    <Border Background="#0DFFFFFF" CornerRadius="12" Padding="16">
                         <StackPanel>
-                            <TextBlock Text="Настройка текста карточек" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                            <CheckBox Content="Режим редактирования"
+                                      IsChecked="{Binding IsEditMode, Mode=TwoWay}"/>
 
-                            <StackPanel Margin="0,8,0,0">
-                                <TextBlock Text="Шрифт" Foreground="White" Opacity="0.8"/>
-                                <ComboBox Margin="0,6,0,0" Height="32"
-                                          ItemsSource="{Binding AvailableFonts, RelativeSource={RelativeSource AncestorType=Window}}"
-                                          SelectedValue="{Binding TitleFontFamily, Mode=TwoWay}">
-                                </ComboBox>
+                            <CheckBox Margin="0,16,0,0"
+                                      Content="Показывать границы карточек"
+                                      IsChecked="{Binding ShowTileBorder, Mode=TwoWay}"/>
+                            
+                            <StackPanel Margin="0,20,0,0">
+                                <DockPanel>
+                                    <TextBlock Text="Высота панели" Foreground="White" Opacity="0.8"/>
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding WidgetHeight, StringFormat={}{0:0}px}"
+                                               Foreground="White"
+                                               Opacity="0.8"/>
+                                </DockPanel>
+                                <Slider Minimum="{Binding MinWidgetHeightValue}"
+                                        Maximum="{Binding MaxWidgetHeight}"
+                                        Value="{Binding WidgetHeight, Mode=TwoWay}"
+                                        TickFrequency="10"
+                                        IsSnapToTickEnabled="True"/>
                             </StackPanel>
 
-                            <StackPanel Margin="0,12,0,0">
+                            <StackPanel Margin="0,20,0,0">
+                                <DockPanel>
+                                    <TextBlock Text="Прозрачность фона" Foreground="White" Opacity="0.8"/>
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding PanelBackgroundOpacity, StringFormat={}{0:0%}}"
+                                               Foreground="White"
+                                               Opacity="0.8"/>
+                                </DockPanel>
+                                <Slider Minimum="0.00"
+                                        Maximum="1.00"
+                                        Value="{Binding PanelBackgroundOpacity, Mode=TwoWay}"
+                                        TickFrequency="0.05"
+                                        IsSnapToTickEnabled="True"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Layout Settings -->
+                    <TextBlock Text="РАСПОЛОЖЕНИЕ" Foreground="White" Opacity="0.4" FontSize="11" FontWeight="Bold" Margin="0,25,0,10"/>
+                    <Border Background="#0DFFFFFF" CornerRadius="12" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Положение панели на экране" Foreground="White" Opacity="0.8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <RadioButton Content="Снизу"
+                                             Margin="0,0,30,0"
+                                             IsChecked="{Binding IsDockBottom, Mode=TwoWay}"/>
+                                <RadioButton Content="Сверху"
+                                             IsChecked="{Binding IsDockTop, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Visual Settings -->
+                    <TextBlock Text="ВИЗУАЛЬНЫЙ СТИЛЬ" Foreground="White" Opacity="0.4" FontSize="11" FontWeight="Bold" Margin="0,25,0,10"/>
+                    <Border Background="#0DFFFFFF" CornerRadius="12" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="Акцентный цвет" Foreground="White" Opacity="0.8"/>
+                            <ListBox x:Name="ColorPicker"
+                                     Margin="0,12,0,0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     SelectionChanged="ColorPicker_SelectionChanged">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="24"
+                                                Height="24"
+                                                Background="{Binding}"
+                                                CornerRadius="12"
+                                                Margin="4"
+                                                BorderBrush="White"
+                                                BorderThickness="1.5"
+                                                Cursor="Hand">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="6" ShadowDepth="0" Color="Black" Opacity="0.3"/>
+                                            </Border.Effect>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <SolidColorBrush>Cyan</SolidColorBrush>
+                                <SolidColorBrush>Lime</SolidColorBrush>
+                                <SolidColorBrush>OrangeRed</SolidColorBrush>
+                                <SolidColorBrush>Magenta</SolidColorBrush>
+                                <SolidColorBrush>Yellow</SolidColorBrush>
+                                <SolidColorBrush>White</SolidColorBrush>
+                                <SolidColorBrush>#744DFF</SolidColorBrush>
+                                <SolidColorBrush>#FFD700</SolidColorBrush>
+                            </ListBox>
+                            
+                            <Button Margin="0,16,0,0"
+                                    Height="40"
+                                    Content="Выбрать свой цвет..."
+                                    Style="{StaticResource RoundedButtonStyle}"
+                                    Click="PickBorderColor_Click"/>
+
+                            <TextBlock Text="Цвет фона панели" Foreground="White" Opacity="0.8" Margin="0,20,0,0"/>
+                            <Button Margin="0,12,0,0"
+                                    Height="40"
+                                    Content="Выбрать цвет фона..."
+                                    Style="{StaticResource RoundedButtonStyle}"
+                                    Click="PickPanelColor_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Text Settings -->
+                    <TextBlock Text="ТЕКСТ И ШРИФТЫ" Foreground="White" Opacity="0.4" FontSize="11" FontWeight="Bold" Margin="0,25,0,10"/>
+                    <Border Background="#0DFFFFFF" CornerRadius="12" Padding="16" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Шрифт карточек" Foreground="White" Opacity="0.8"/>
+                            <ComboBox Margin="0,12,0,0" Height="36"
+                                      ItemsSource="{Binding AvailableFonts, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      SelectedValue="{Binding TitleFontFamily, Mode=TwoWay}">
+                            </ComboBox>
+
+                            <StackPanel Margin="0,20,0,0">
                                 <DockPanel>
                                     <TextBlock Text="Масштаб текста" Foreground="White" Opacity="0.8"/>
                                     <TextBlock DockPanel.Dock="Right" Text="{Binding TitleFontSizeScale, StringFormat={}{0:0.0}x}" Foreground="White" Opacity="0.8"/>
@@ -388,32 +580,32 @@
                                 <Slider Minimum="0.5" Maximum="3.0" Value="{Binding TitleFontSizeScale, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True"/>
                             </StackPanel>
 
-                            <StackPanel Margin="0,12,0,0">
-                                <DockPanel>
-                                    <TextBlock Text="Позиция текста (верх - низ)" Foreground="White" Opacity="0.8"/>
-                                </DockPanel>
+                            <StackPanel Margin="0,20,0,0">
+                                <TextBlock Text="Позиция текста (по вертикали)" Foreground="White" Opacity="0.8"/>
                                 <Slider Minimum="0" Maximum="1" Value="{Binding TitleVerticalOffset, Mode=TwoWay}" TickFrequency="0.01" IsSnapToTickEnabled="False"/>
                             </StackPanel>
 
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock Text="Цвет текста" Foreground="White" Opacity="0.8"/>
-                                <Button Margin="0,8,0,0" Height="34" Content="Выбрать цвет текста..." Style="{StaticResource RoundedButtonStyle}" Click="PickTitleColor_Click"/>
-                            </StackPanel>
+                            <TextBlock Text="Цвет текста" Foreground="White" Opacity="0.8" Margin="0,20,0,0"/>
+                            <Button Margin="0,12,0,0" Height="40" Content="Выбрать цвет текста..." Style="{StaticResource RoundedButtonStyle}" Click="PickTitleColor_Click"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
 
-            <StackPanel Grid.Row="2"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="0,14,0,0">
-                <Button Content="Сохранить"
-                        Width="120"
-                        Height="38"
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Padding="20,12,20,20"
+                    Background="#0DFFFFFF"
+                    BorderBrush="#10FFFFFF"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,20,20">
+                <Button Content="Готово"
+                        HorizontalAlignment="Stretch"
+                        Height="44"
                         Style="{StaticResource RoundedButtonStyle}"
-                        Click="Save_Click"/>
-            </StackPanel>
+                        Click="Save_Click"
+                        FontWeight="Bold"/>
+            </Border>
 
         </Grid>
     </Border>

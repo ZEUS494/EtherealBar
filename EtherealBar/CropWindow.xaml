@@ -6,13 +6,15 @@
         Width="860"
         Height="720"
         WindowStartupLocation="CenterOwner"
-        Background="#101214">
+        Background="#0A0A0A"
+        WindowStyle="None"
+        AllowsTransparency="True">
 
     <Window.Resources>
         <Style x:Key="RoundedButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#20FFFFFF"/>
+            <Setter Property="Background" Value="#1AFFFFFF"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#35FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#25FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="14,8"/>
@@ -24,142 +26,197 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12">
+                                CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#30FFFFFF"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#60FFFFFF"/>
+                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#18FFFFFF"/>
+                                <Setter TargetName="border" Property="Background" Value="#10FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style TargetType="Slider">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="30">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="White" Height="6" CornerRadius="3"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="20" Height="20">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Grid Width="20" Height="20">
+                                                    <Ellipse Fill="White" Width="20" Height="20">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="Black" Opacity="0.5"/>
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+                                                    <Ellipse Fill="Black" Opacity="0.1" Width="10" Height="10"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="#33FFFFFF" Height="6" CornerRadius="3"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="18">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Border BorderBrush="#1AFFFFFF" BorderThickness="1.5" CornerRadius="20" Background="#F20A0A0A">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,14">
-            <TextBlock Text="Настройка области на карточке"
-                       Foreground="White"
-                       FontSize="20"
-                       FontWeight="SemiBold"/>
-            <TextBlock Text="Перетаскивай медиа мышкой и используй колесо для масштаба."
-                       Foreground="#CCFFFFFF"
-                       Margin="0,6,0,0"/>
-        </StackPanel>
-
-        <Grid Grid.Row="1">
-            <Border x:Name="EditorFrame"
-                    Background="#161A1D"
-                    BorderBrush="#28FFFFFF"
-                    BorderThickness="1"
-                    CornerRadius="18"/>
-
-            <Grid x:Name="EditorSurface"
-                  Width="760"
-                  Height="430"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  Background="Transparent"
-                  SizeChanged="EditorSurface_SizeChanged"
-                  PreviewMouseLeftButtonDown="ViewportBorder_PreviewMouseLeftButtonDown"
-                  PreviewMouseLeftButtonUp="ViewportBorder_PreviewMouseLeftButtonUp"
-                  PreviewMouseMove="ViewportBorder_PreviewMouseMove"
-                  PreviewMouseWheel="ViewportBorder_PreviewMouseWheel">
-                <Grid x:Name="MediaViewport"
-                      Width="400"
-                      Height="400"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      ClipToBounds="True"
-                      Background="Transparent"
-                      SizeChanged="MediaViewport_SizeChanged">
-                    <Image x:Name="PreviewImage"
-                           Stretch="Fill"
-                           Visibility="Collapsed"
-                           RenderTransformOrigin="0.5,0.5"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
-                    <MediaElement x:Name="PreviewVideo"
-                                  LoadedBehavior="Manual"
-                                  UnloadedBehavior="Manual"
-                                  IsMuted="True"
-                                  Stretch="Fill"
-                                  Visibility="Collapsed"
-                                  MediaOpened="PreviewVideo_MediaOpened"
-                                  MediaEnded="PreviewVideo_MediaEnded"
-                                  RenderTransformOrigin="0.5,0.5"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
-                    <local:AnimatedGifImage x:Name="PreviewGif"
-                                            Stretch="Fill"
-                                            Visibility="Collapsed"
-                                            RenderTransformOrigin="0.5,0.5"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"/>
-                </Grid>
-
-                <Border x:Name="ViewportBorder"
-                        Width="400"
-                        Height="400"
-                        Background="#08000000"
-                        BorderBrush="#80FFFFFF"
-                        BorderThickness="2"
-                        CornerRadius="22"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        IsHitTestVisible="False"
-                        SizeChanged="ViewportBorder_SizeChanged"/>
-            </Grid>
-        </Grid>
-
-        <Grid Grid.Row="2" Margin="0,16,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="Масштаб" Foreground="White" VerticalAlignment="Center"/>
-                <Slider x:Name="ZoomSlider"
-                        Width="220"
-                        Margin="12,0,0,0"
-                        Minimum="1"
-                        Maximum="3"
-                        TickFrequency="0.05"
-                        IsSnapToTickEnabled="False"
-                        ValueChanged="ZoomSlider_ValueChanged"/>
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="Настройка области"
+                           Foreground="White"
+                           FontSize="24"
+                           FontWeight="Bold"/>
+                <TextBlock Text="Перетаскивай медиа мышкой и используй колесо для масштаба."
+                           Foreground="White"
+                           Opacity="0.5"
+                           Margin="0,8,0,0"/>
             </StackPanel>
 
-            <Button Grid.Column="1"
-                    Content="Отмена"
-                    Width="110"
-                    Height="38"
-                    Margin="0,0,10,0"
-                    Style="{StaticResource RoundedButtonStyle}"
-                    Click="Cancel_Click"/>
+            <Grid Grid.Row="1">
+                <Border x:Name="EditorFrame"
+                        Background="#0DFFFFFF"
+                        BorderBrush="#10FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="20"/>
 
-            <Button Grid.Column="2"
-                    Content="Сохранить"
-                    Width="120"
-                    Height="38"
-                    Style="{StaticResource RoundedButtonStyle}"
-                    Click="Save_Click"/>
+                <Grid x:Name="EditorSurface"
+                      Width="760"
+                      Height="430"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Background="Transparent"
+                      SizeChanged="EditorSurface_SizeChanged"
+                      PreviewMouseLeftButtonDown="ViewportBorder_PreviewMouseLeftButtonDown"
+                      PreviewMouseLeftButtonUp="ViewportBorder_PreviewMouseLeftButtonUp"
+                      PreviewMouseMove="ViewportBorder_PreviewMouseMove"
+                      PreviewMouseWheel="ViewportBorder_PreviewMouseWheel">
+                    <Grid x:Name="MediaViewport"
+                          Width="400"
+                          Height="400"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          ClipToBounds="True"
+                          Background="Transparent"
+                          SizeChanged="MediaViewport_SizeChanged">
+                        <Image x:Name="PreviewImage"
+                               Stretch="Fill"
+                               Visibility="Collapsed"
+                               RenderTransformOrigin="0.5,0.5"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <MediaElement x:Name="PreviewVideo"
+                                      LoadedBehavior="Manual"
+                                      UnloadedBehavior="Manual"
+                                      IsMuted="True"
+                                      Stretch="Fill"
+                                      Visibility="Collapsed"
+                                      MediaOpened="PreviewVideo_MediaOpened"
+                                      MediaEnded="PreviewVideo_MediaEnded"
+                                      RenderTransformOrigin="0.5,0.5"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <local:AnimatedGifImage x:Name="PreviewGif"
+                                                Stretch="Fill"
+                                                Visibility="Collapsed"
+                                                RenderTransformOrigin="0.5,0.5"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Grid>
+
+                    <Border x:Name="ViewportBorder"
+                            Width="400"
+                            Height="400"
+                            Background="#08000000"
+                            BorderBrush="#80FFFFFF"
+                            BorderThickness="2"
+                            CornerRadius="22"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False"
+                            SizeChanged="ViewportBorder_SizeChanged"/>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Масштаб" Foreground="White" Opacity="0.8" VerticalAlignment="Center"/>
+                    <Slider x:Name="ZoomSlider"
+                            Width="240"
+                            Margin="16,0,0,0"
+                            Minimum="1"
+                            Maximum="3"
+                            TickFrequency="0.05"
+                            IsSnapToTickEnabled="False"
+                            ValueChanged="ZoomSlider_ValueChanged"/>
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Content="Отмена"
+                        Width="120"
+                        Height="42"
+                        Margin="0,0,12,0"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        Click="Cancel_Click"/>
+
+                <Button Grid.Column="2"
+                        Content="Сохранить"
+                        Width="140"
+                        Height="42"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        Click="Save_Click"
+                        FontWeight="Bold"/>
+            </Grid>
         </Grid>
-    </Grid>
+    </Border>
 </Window>
 

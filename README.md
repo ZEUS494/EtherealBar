@@ -31,7 +31,7 @@ dotnet build .\EtherealBar\EtherealBar.csproj
 
 ## Версия
 
-Текущая версия проекта: `1.3.0`  
+Текущая версия проекта: `1.3.1`  
 История изменений: `CHANGELOG.md`
 
 ## Релизы
